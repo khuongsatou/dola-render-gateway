@@ -377,6 +377,12 @@ class AccountAdd(BaseModel):
     email: str
     password: str
     totp: str
+    incognito: bool | None = None
+
+
+class SettingsPatch(BaseModel):
+    incognito: bool | None = None
+    headless: bool | None = None
 
 
 class KeyCreate(BaseModel):
@@ -403,6 +409,29 @@ async def admin_login(body: AdminLogin):
     if body.key == config.ADMIN_KEY:
         return {"ok": True, "auth_required": True}
     raise HTTPException(401, "wrong admin key")
+
+
+@app.get("/api/admin/settings")
+async def admin_get_settings(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return {
+        "incognito": config.INCOGNITO,
+        "headless": config.HEADLESS,
+    }
+
+
+@app.patch("/api/admin/settings")
+async def admin_patch_settings(body: SettingsPatch, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    if body.incognito is not None:
+        config.INCOGNITO = body.incognito
+    if body.headless is not None:
+        config.HEADLESS = body.headless
+    return {
+        "ok": True,
+        "incognito": config.INCOGNITO,
+        "headless": config.HEADLESS,
+    }
 
 
 @app.get("/api/admin/accounts")
@@ -450,10 +479,10 @@ async def admin_account_verify(name: str, x_admin_key: str | None = Header(defau
     return {"ok": ok}
 
 
-async def _run_add_job(name: str, email: str, password: str, totp: str):
+async def _run_add_job(name: str, email: str, password: str, totp: str, incognito: bool | None = None):
     JOBS[name] = {"kind": "add", "status": "running", "error": "", "started_at": time.time()}
     try:
-        await add_account_flow(name, email, password, totp)
+        await add_account_flow(name, email, password, totp, incognito=incognito)
         pool.set_email(name, email)
         pool.set_login_status(name, True)
         JOBS[name] = {**JOBS[name], "status": "success"}
@@ -470,7 +499,7 @@ async def admin_account_add(body: AccountAdd, x_admin_key: str | None = Header(d
         raise HTTPException(409, "account exists")
     if JOBS.get(body.name, {}).get("status") == "running":
         raise HTTPException(409, "add job running")
-    asyncio.create_task(_run_add_job(body.name, body.email, body.password, body.totp))
+    asyncio.create_task(_run_add_job(body.name, body.email, body.password, body.totp, incognito=body.incognito))
     return {"ok": True, "job": "running"}
 
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,10 @@ td .prompt{display:block;max-width:340px;overflow:hidden;text-overflow:ellipsis;
 <header>
   <div class="brand"><span class="dot"></span>Dola Pool Dashboard</div>
   <div class="head-r">
+    <label title="Chế độ ẩn danh (Incognito Mode) cho trình duyệt - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#eef1f0;padding:4px 10px;border-radius:20px;border:1px solid var(--line)">
+      <span style="font-size:12px;font-weight:600;color:var(--text)">Chế độ ẩn danh</span>
+      <span class="sw"><input type="checkbox" id="incognitoSw" onchange="toggleIncognito(this.checked)"><i></i></span>
+    </label>
     <label><input type="checkbox" id="autoCk" checked onchange="autoRefresh=this.checked">Auto Refresh</label>
     <span id="lastUpdate"></span>
     <button class="btn" onclick="refresh()">Refresh</button>
@@ -183,12 +187,31 @@ function switchTab(t){
 async function refresh(){
   if(q('#loginMask').style.display!=='none')return;
   q('#lastUpdate').textContent='Updated at '+new Date().toLocaleTimeString();
+  loadSettings();
   try{
     if(curTab==='dash')await loadDash();
     else if(curTab==='accounts')await loadAccounts();
     else if(curTab==='tasks')await loadTasks();
     else if(curTab==='keys')await loadKeys();
   }catch(e){if(e.message!=='unauthorized'){/* silent */}}
+}
+
+async function loadSettings(){
+  try{
+    const s=await api('/api/admin/settings');
+    const sw=q('#incognitoSw');
+    if(sw)sw.checked=!!s.incognito;
+  }catch(e){}
+}
+
+async function toggleIncognito(on){
+  try{
+    await api('/api/admin/settings',{method:'PATCH',body:{incognito:on}});
+  }catch(e){
+    alert('Không thể lưu cài đặt: '+e.message);
+    const sw=q('#incognitoSw');
+    if(sw)sw.checked=!on;
+  }
 }
 
 /* ---- Dashboard ---- */
@@ -286,10 +309,19 @@ function openAddAccount(){
     <label>Google Email</label><input id="f_email" placeholder="xxx@yy.asia">
     <label>Password</label><input id="f_pass" type="password">
     <label>TOTP Secret (2FA)</label><input id="f_totp" placeholder="2FA secret">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
+      <input type="checkbox" id="f_incognito" style="width:auto;margin:0"> Chạy ở chế độ ẩn danh (Incognito)
+    </label>
     <div class="row"><button class="btn" onclick="hide('dlg')">Cancel</button><button class="btn btn-p" onclick="submitAddAccount()">Start Login</button></div>`);
 }
 async function submitAddAccount(){
-  const body={name:q('#f_name').value.trim(),email:q('#f_email').value.trim(),password:q('#f_pass').value,totp:q('#f_totp').value.trim()};
+  const body={
+    name:q('#f_name').value.trim(),
+    email:q('#f_email').value.trim(),
+    password:q('#f_pass').value,
+    totp:q('#f_totp').value.trim(),
+    incognito:q('#f_incognito')?.checked||false
+  };
   if(!body.name||!body.email||!body.password)return alert('Please enter account name, email and password');
   try{await api('/api/admin/accounts',{method:'POST',body});}catch(e){return alert(e.message);}
   hide('dlg');refresh();
