@@ -108,14 +108,30 @@ td .prompt{display:block;max-width:340px;overflow:hidden;text-overflow:ellipsis;
   <section id="tab-dash">
     <div class="cards" id="statCards"></div>
     <div class="card"><h3>7-Day Video Generation Trend</h3><div class="chart" id="chart"></div></div>
-    <div class="card"><h3>Account Pool Overview</h3><div id="perAccount"></div></div>
+    <div class="card">
+      <div class="toolbar">
+        <h3 style="margin:0">Account Pool Overview</h3>
+        <label title="Chế độ ẩn danh (Incognito Mode) cho toàn bộ Account Pool - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f8faf9;padding:6px 12px;border-radius:20px;border:1px solid var(--line)">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🕵️ Chế độ ẩn danh (Chung)</span>
+          <span class="sw"><input type="checkbox" id="incognitoSwPool" onchange="toggleIncognito(this.checked)"><i></i></span>
+          <span id="incognitoStatusBadge" class="badge b-gray">Tắt</span>
+        </label>
+      </div>
+      <div id="perAccount"></div>
+    </div>
   </section>
 
   <section id="tab-accounts" style="display:none">
     <div class="card">
       <div class="toolbar">
         <h3 style="margin:0">Account List</h3>
-        <button class="btn btn-p" onclick="openAddAccount()">＋ Add Account</button>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label title="Chế độ ẩn danh (Incognito Mode) cho toàn bộ Account Pool - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f8faf9;padding:6px 12px;border-radius:20px;border:1px solid var(--line)">
+            <span style="font-size:13px;font-weight:600;color:var(--text)">🕵️ Chế độ ẩn danh (Chung)</span>
+            <span class="sw"><input type="checkbox" id="incognitoSwAccounts" onchange="toggleIncognito(this.checked)"><i></i></span>
+          </label>
+          <button class="btn btn-p" onclick="openAddAccount()">＋ Add Account</button>
+        </div>
       </div>
       <div id="accountsTable"></div>
     </div>
@@ -199,19 +215,43 @@ async function refresh(){
 async function loadSettings(){
   try{
     const s=await api('/api/admin/settings');
-    const sw=q('#incognitoSw');
-    if(sw)sw.checked=!!s.incognito;
+    ['#incognitoSw','#incognitoSwPool','#incognitoSwAccounts'].forEach(sel=>{
+      const sw=q(sel);
+      if(sw)sw.checked=!!s.incognito;
+    });
+    const badge=q('#incognitoStatusBadge');
+    if(badge){
+      badge.textContent=s.incognito?'Bật':'Tắt';
+      badge.className='badge '+(s.incognito?'b-green':'b-gray');
+    }
   }catch(e){}
 }
 
 async function toggleIncognito(on){
   try{
     await api('/api/admin/settings',{method:'PATCH',body:{incognito:on}});
+    ['#incognitoSw','#incognitoSwPool','#incognitoSwAccounts'].forEach(sel=>{
+      const sw=q(sel);
+      if(sw)sw.checked=on;
+    });
+    const badge=q('#incognitoStatusBadge');
+    if(badge){
+      badge.textContent=on?'Bật':'Tắt';
+      badge.className='badge '+(on?'b-green':'b-gray');
+    }
   }catch(e){
     alert('Không thể lưu cài đặt: '+e.message);
-    const sw=q('#incognitoSw');
-    if(sw)sw.checked=!on;
+    loadSettings();
   }
+}
+
+async function setAccIncognito(name,on){
+  try{
+    await api('/api/admin/accounts/'+name,{method:'PATCH',body:{incognito:on}});
+  }catch(e){
+    alert('Không thể lưu cài đặt ẩn danh cho '+name+': '+e.message);
+  }
+  refresh();
 }
 
 /* ---- Dashboard ---- */
@@ -233,11 +273,12 @@ async function loadDash(){
       <div class="lbl">${d.day}</div>
     </div>`).join('');
   q('#perAccount').innerHTML=table(
-    ['Account','Status','Dispatch','Remaining Today','Total Generated','Last Used'],
+    ['Account','Status','Dispatch','Ẩn danh','Remaining Today','Total Generated','Last Used'],
     st.per_account.map(a=>[
       accLabel(a),
       statusBadge(a),
-      `<label class="sw"><input type="checkbox" ${a.scheduling?'checked':''} onchange="setSched('${a.name}',this.checked)"><i></i></label>`,
+      `<label class="sw" title="Dispatch"><input type="checkbox" ${a.scheduling?'checked':''} onchange="setSched('${a.name}',this.checked)"><i></i></label>`,
+      `<label class="sw" title="Chế độ ẩn danh cho ${esc(a.name)}"><input type="checkbox" ${a.incognito?'checked':''} onchange="setAccIncognito('${a.name}',this.checked)"><i></i></label>`,
       `<b>${a.used_today}</b> / ${a.limit}<span class="tiny"> (logged)</span>`,
       a.completed_total||0,
       fmt(a.last_used_at)
@@ -279,14 +320,15 @@ async function loadAccounts(){
       `<span class="account-id">${esc(x.name)}</span>`,
       accLabel(x)+warn,
       badge,
-      `<label class="sw"><input type="checkbox" ${x.scheduling?'checked':''} onchange="setSched('${x.name}',this.checked)"><i></i></label>`,
+      `<label class="sw" title="Dispatch"><input type="checkbox" ${x.scheduling?'checked':''} onchange="setSched('${x.name}',this.checked)"><i></i></label>`,
+      `<label class="sw" title="Chế độ ẩn danh cho ${esc(x.name)}"><input type="checkbox" ${x.incognito?'checked':''} onchange="setAccIncognito('${x.name}',this.checked)"><i></i></label>`,
       `<b>${x.used_today}</b> / ${x.limit}`,
       fmt(x.last_used_at),
       fmt(x.created_at),
       `<button class="btn" style="margin-right:6px" onclick="verify('${x.name}',this)">Verify</button><button class="btn btn-danger" onclick="delAccount('${x.name}')">Delete</button>`
     ];
   });
-  q('#accountsTable').innerHTML=table(['Account ID','Name','Status','Dispatch','Remaining','Last Used','Created At','Actions'],rows);
+  q('#accountsTable').innerHTML=table(['Account ID','Name','Status','Dispatch','Ẩn danh','Remaining','Last Used','Created At','Actions'],rows);
 }
 
 async function verify(name,btn){

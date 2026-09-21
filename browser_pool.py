@@ -68,6 +68,7 @@ class BrowserPool:
             ("quota_reason", "TEXT DEFAULT ''"),
             ("credit_balance", "INTEGER"),
             ("credit_checked_at", "REAL DEFAULT 0"),
+            ("incognito", "INTEGER DEFAULT 0"),
         ):
             try:
                 self._conn.execute(f"ALTER TABLE accounts_meta ADD COLUMN {column} {definition}")
@@ -187,8 +188,15 @@ class BrowserPool:
                 "limit": DAILY_LIMIT,
                 "remaining": max(0, DAILY_LIMIT - used),
                 "busy": bool(lock and lock.locked()),
+                "incognito": bool(m["incognito"]) if (m and "incognito" in m.keys() and m["incognito"] is not None) else False,
             })
         return out
+
+    def set_incognito(self, name: str, on: bool):
+        self._ensure_meta(name)
+        self._conn.execute(
+            "UPDATE accounts_meta SET incognito=? WHERE name=?", (1 if on else 0, name))
+        self._conn.commit()
 
     def set_scheduling(self, name: str, on: bool):
         self._conn.execute(

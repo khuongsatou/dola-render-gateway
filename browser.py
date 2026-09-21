@@ -23,7 +23,20 @@ async def launch_account_context(p, account: str, headless: bool = None, use_ext
             f"Account profile does not exist: {profile_dir} (run python add_account.py {account} first)"
         )
     launch_headless = config.HEADLESS if headless is None else headless
-    launch_incognito = config.INCOGNITO if incognito is None else incognito
+    if incognito is not None:
+        launch_incognito = incognito
+    else:
+        acc_incognito = False
+        try:
+            import sqlite3
+            conn = sqlite3.connect("pool_usage.db")
+            row = conn.execute("SELECT incognito FROM accounts_meta WHERE name=?", (account,)).fetchone()
+            if row and row[0]:
+                acc_incognito = True
+            conn.close()
+        except Exception:
+            pass
+        launch_incognito = acc_incognito or config.INCOGNITO
 
     args = list(LAUNCH_ARGS)
     if launch_incognito:

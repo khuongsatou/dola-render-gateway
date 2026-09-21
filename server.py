@@ -368,6 +368,7 @@ class AdminLogin(BaseModel):
 
 class AccountPatch(BaseModel):
     scheduling: bool | None = None
+    incognito: bool | None = None
     note: str | None = None
     email: str | None = None
 
@@ -448,6 +449,8 @@ async def admin_account_patch(name: str, body: AccountPatch,
         raise HTTPException(404, "account not found")
     if body.scheduling is not None:
         pool.set_scheduling(name, body.scheduling)
+    if body.incognito is not None:
+        pool.set_incognito(name, body.incognito)
     if body.note is not None:
         pool.set_note(name, body.note)
     if body.email is not None:
