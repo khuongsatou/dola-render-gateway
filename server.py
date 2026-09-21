@@ -18,6 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -558,6 +559,12 @@ async def admin_key_delete(key: str, x_admin_key: str | None = Header(default=No
         raise HTTPException(404, "api key not found")
     store.delete_key(key)
     return {"ok": True}
+
+
+@app.get("/web")
+@app.get("/web/")
+async def redirect_web():
+    return RedirectResponse(url="/")
 
 
 # Dashboard single-file frontend

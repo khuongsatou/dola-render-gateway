@@ -42,7 +42,7 @@ DB_PATH = os.getenv("DOLA_DB_PATH", "tasks.db")
 DOWNLOAD_DIR = os.getenv("DOLA_DOWNLOAD_DIR", "downloads")
 
 # Explicit browser proxy (must point to JP/KR egress; empty = system proxy)
-PROXY = os.getenv("DOLA_PROXY", "http://127.0.0.1:7890")
+PROXY = os.getenv("DOLA_PROXY", "")
 
 # Run browser in headless mode (login always runs with head)
 HEADLESS = os.getenv("DOLA_HEADLESS", "1") == "1"

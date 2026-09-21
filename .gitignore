@@ -1,4 +1,7 @@
 # --- secrets / local config ---
+.env
+.env.*
+!.env.example
 .env.local
 cookies.txt
 *.log
@@ -31,3 +34,9 @@ dl_now.py
 __pycache__/
 .venv/
 *.pyc
+
+# --- OS / IDE ---
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
