@@ -104,13 +104,18 @@ async def google_login(g, email: str, password: str, secret: str):
         raise RuntimeError("Google login did not complete within 12 steps (saved dbg_google2.png)")
 
 
-async def add_account_flow(account: str, email: str, password: str, secret: str) -> bool:
+async def add_account_flow(account: str, email: str, password: str, secret: str, incognito: bool = None) -> bool:
     """Full account addition flow; returns True on success."""
     profile_dir = Path("accounts") / account
     profile_dir.mkdir(parents=True, exist_ok=True)
 
+    launch_incognito = config.INCOGNITO if incognito is None else incognito
+    args = list(LAUNCH_ARGS)
+    if launch_incognito:
+        args.append("--incognito")
+
     async with async_playwright() as p:
-        kwargs = {"headless": False, "args": LAUNCH_ARGS,
+        kwargs = {"headless": False, "args": args,
                   "locale": "ja-JP", "timezone_id": "Asia/Tokyo"}
         if config.PROXY:
             kwargs["proxy"] = {"server": config.PROXY}
@@ -159,9 +164,14 @@ async def add_account_flow(account: str, email: str, password: str, secret: str)
 
 
 async def main():
-    account = sys.argv[1]
-    email, password, secret = sys.argv[2].split("----")
-    await add_account_flow(account, email, password, secret)
+    incognito = "--incognito" in sys.argv
+    clean_argv = [a for a in sys.argv[1:] if a != "--incognito"]
+    if len(clean_argv) < 2:
+        print("Usage: python add_account.py <account_name> \"email----password----totp\" [--incognito]")
+        sys.exit(1)
+    account = clean_argv[0]
+    email, password, secret = clean_argv[1].split("----")
+    await add_account_flow(account, email, password, secret, incognito=incognito)
     print(f"[{account}] Account added successfully!")
 
 

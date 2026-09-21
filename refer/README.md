@@ -72,6 +72,9 @@ DOLA_MAX_CONCURRENCY=3
 # Trình duyệt chạy ngầm (1 = headless ngầm, 0 = hiện cửa sổ trình duyệt)
 DOLA_HEADLESS=1
 
+# Chạy trình duyệt ở chế độ ẩn danh Incognito (1 = bật, 0 = tắt, mặc định: 0)
+DOLA_INCOGNITO=0
+
 # Timeout render video (giây)
 DOLA_VIDEO_TIMEOUT=300
 ```
@@ -79,10 +82,10 @@ DOLA_VIDEO_TIMEOUT=300
 ### 2.3. Thêm tài khoản Dola vào hệ thống
 
 #### Cách 1: Tự động qua lệnh terminal (`add_account.py`)
-Hỗ trợ đăng nhập tự động qua Google OAuth và vượt 2FA TOTP:
+Hỗ trợ đăng nhập tự động qua Google OAuth và vượt 2FA TOTP (thêm cờ `--incognito` nếu muốn chạy ẩn danh):
 ```bash
 source .venv/bin/activate
-python add_account.py acc1 "your_email@gmail.com----your_password----JBSWY3DPEHPK3PXP"
+python add_account.py acc1 "your_email@gmail.com----your_password----JBSWY3DPEHPK3PXP" [--incognito]
 ```
 *(Trình duyệt sẽ tự mở, đăng nhập, lấy session và lưu vào `accounts/acc1`)*.
 

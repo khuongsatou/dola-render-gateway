@@ -47,6 +47,9 @@ PROXY = os.getenv("DOLA_PROXY", "")
 # Run browser in headless mode (login always runs with head)
 HEADLESS = os.getenv("DOLA_HEADLESS", "1") == "1"
 
+# Run browser in incognito mode (default: disabled)
+INCOGNITO = os.getenv("DOLA_INCOGNITO", "0") == "1"
+
 # Base public URL for returning static video links
 PUBLIC_BASE = os.getenv("DOLA_PUBLIC_BASE", f"http://127.0.0.1:{PORT}")
 

@@ -10,11 +10,12 @@ LAUNCH_ARGS = [
 ]
 
 
-async def launch_account_context(p, account: str, headless: bool = None, use_extension: bool = False):
+async def launch_account_context(p, account: str, headless: bool = None, use_extension: bool = False, incognito: bool = None):
     """Launches accounts/<account> profile, returns BrowserContext. Caller must close.
 
     p: async_playwright() instance
     headless: None = uses config.HEADLESS
+    incognito: None = uses config.INCOGNITO
     """
     profile_dir = Path("accounts") / account
     if not profile_dir.exists():
@@ -22,7 +23,12 @@ async def launch_account_context(p, account: str, headless: bool = None, use_ext
             f"Account profile does not exist: {profile_dir} (run python add_account.py {account} first)"
         )
     launch_headless = config.HEADLESS if headless is None else headless
+    launch_incognito = config.INCOGNITO if incognito is None else incognito
+
     args = list(LAUNCH_ARGS)
+    if launch_incognito:
+        args.append("--incognito")
+
     if use_extension:
         if not config.EXTENSION_ENABLED:
             raise RuntimeError("Dola extension is disabled (DOLA_EXTENSION_ENABLED=0)")
@@ -35,6 +41,8 @@ async def launch_account_context(p, account: str, headless: bool = None, use_ext
             f"--disable-extensions-except={extension_dir}",
             f"--load-extension={extension_dir}",
         ])
+        if launch_incognito:
+            args.append("--enable-incognito-extensions")
     kwargs = {
         "headless": launch_headless,
         "args": args,
