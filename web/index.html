@@ -1,479 +1,2294 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="vi" class="theme-dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dola Pool Admin Dashboard</title>
+<title>Dola Render Gateway — Motion Studio Edition</title>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-:root{--bg:#f2f5f4;--card:#fff;--line:#e5e9e8;--text:#1f2a28;--sub:#7a8a86;--accent:#00a870;--accent-d:#008e5d;--red:#e5484d;--orange:#f59e0b;--blue:#3b82f6;--gray:#9aa8a4}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
-a{color:var(--accent);text-decoration:none}
-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 20px;background:var(--card);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
-.dot{width:12px;height:12px;border-radius:3px;background:var(--accent)}
-.head-r{display:flex;align-items:center;gap:14px;color:var(--sub);font-size:13px}
-.head-r label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-nav{display:flex;gap:4px;padding:12px 20px 0;border-bottom:1px solid var(--line);background:var(--bg)}
-nav button{border:none;background:none;padding:10px 16px;font-size:14px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent}
-nav button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-main{padding:20px;max-width:1180px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
-.card h3{font-size:14px;margin-bottom:14px;font-weight:600}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-.stat{padding:16px;border-radius:12px;color:#fff;display:flex;flex-direction:column;gap:6px}
-.stat .v{font-size:28px;font-weight:700}
-.stat .l{font-size:13px;opacity:.85}
-.s1{background:linear-gradient(135deg,#00b875,#00945f)}.s2{background:linear-gradient(135deg,#e5484d,#b93237)}
-.s3{background:linear-gradient(135deg,#3b82f6,#2563eb)}.s4{background:linear-gradient(135deg,#f59e0b,#d97706)}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:13px}
-th{color:var(--sub);font-weight:500;white-space:nowrap}
-td .prompt{display:block;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
-.b-green{background:#e6f7f0;color:#00945f}.b-red{background:#fdeaea;color:#c03237}
-.b-orange{background:#fef4e6;color:#c77a00}.b-blue{background:#e8f1fe;color:#2563eb}
-.b-gray{background:#eef1f0;color:#7a8a86}
-.btn{border:1px solid var(--line);background:#fff;color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn-p{background:var(--accent);color:#fff;border:none}
-.btn-p:hover{background:var(--accent-d);color:#fff}
-.btn-danger{color:#c03237}
-.btn-danger:hover{border-color:#e5484d;color:#e5484d}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.toolbar .hint{color:var(--sub);font-size:12px}
-.sw{position:relative;display:inline-block;width:36px;height:20px}
-.sw input{opacity:0;width:0;height:0}
-.sw i{position:absolute;inset:0;background:#cfd8d5;border-radius:999px;transition:.2s;cursor:pointer}
-.sw i:before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.sw input:checked+i{background:var(--accent)}
-.sw input:checked+i:before{transform:translateX(16px)}
-.mask{position:fixed;inset:0;background:rgba(20,30,28,.45);display:flex;align-items:center;justify-content:center;z-index:100}
-.mask .box{background:#fff;border-radius:14px;padding:28px;width:320px}
-.mask h2{font-size:17px;margin-bottom:18px}
-.mask input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:14px;font-size:14px}
-.mask .err{color:#c03237;font-size:12px;margin-bottom:10px;display:none}
-.mask button{width:100%}
-.dialog{position:fixed;inset:0;background:rgba(20,30,28,.45);display:flex;align-items:center;justify-content:center;z-index:90}
-.dialog .box{background:#fff;border-radius:14px;padding:24px;width:400px;max-width:92vw;max-height:86vh;overflow:auto}
-.dialog h2{font-size:16px;margin-bottom:16px}
-.dialog label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
-.dialog input{width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px}
-.dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
-.keyfull{font-family:monospace;background:#f5f7f6;border:1px dashed var(--line);border-radius:8px;padding:12px;word-break:break-all;margin:10px 0}
-.chart{display:flex;align-items:flex-end;gap:14px;height:140px;padding:0 4px}
-.chart .col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;height:100%;justify-content:flex-end}
-.chart .bars{display:flex;gap:4px;align-items:flex-end;height:110px}
-.chart .bar{border-radius:3px 3px 0 0;width:16px}
-.chart .lbl{font-size:11px;color:var(--sub)}
-.empty{padding:34px;text-align:center;color:var(--sub)}
-.video-wrap{display:flex;gap:8px;align-items:center}
-.tiny{font-size:12px;color:var(--sub)}
-.account-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#52615d;font-weight:600}
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM v3 "GRAPHITE TECH" & APPLE HIG
+   Đúc kết từ mtips5s_motions (Linear/Vercel Dark Than Chì + Apple iOS Springs)
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Brand: Electric Indigo & System Blue */
+  --primary:        #5E6AD2;
+  --primary-hover:  #6B76E5;
+  --primary-dark:   #9AA2F2;
+  --primary-light:  rgba(94, 106, 210, 0.22);
+  --primary-50:     rgba(94, 106, 210, 0.12);
+
+  /* Deep Charcoal Backgrounds */
+  --background:     #0A0A0C;
+  --surface:        #141418;
+  --surface-2:      #1C1C22;
+  --surface-card:   rgba(20, 20, 24, 0.82);
+  --foreground:     #F7F8F8;
+
+  /* Typography inks (Đảo ngược: 50 tối, 900 sáng) */
+  --ink:            #F7F8F8;
+  --ink-2:          #8A8F98;
+  --ink-3:          #62666D;
+  --line:           rgba(255, 255, 255, 0.08);
+  --line-2:         rgba(255, 255, 255, 0.16);
+
+  /* Semantics */
+  --success:        #34C759;
+  --success-light:  rgba(52, 199, 89, 0.14);
+  --warning:        #FF9500;
+  --warning-light:  rgba(255, 149, 0, 0.14);
+  --danger:         #EB5757;
+  --danger-light:   rgba(235, 87, 87, 0.14);
+  --info:           #0A84FF;
+  --info-light:     rgba(10, 132, 255, 0.14);
+
+  /* Apple HIG Springs & Physics */
+  --spring:         cubic-bezier(0.32, 0.72, 0, 1);
+  --radius-lg:      12px;
+  --radius-xl:      16px;
+  --radius-2xl:     20px;
+  --radius-full:    999px;
+
+  /* Shadows */
+  --shadow-card:    0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-hover:   0 2px 4px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-pill:    0 4px 18px rgba(94, 106, 210, 0.38), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-modal:   0 32px 90px rgba(0, 0, 0, 0.75);
+  --specular:       inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Light Theme Switcher Override */
+html.theme-light {
+  --background:     #F5F5F7;
+  --surface:        #FFFFFF;
+  --surface-2:      #F0F0F3;
+  --surface-card:   rgba(255, 255, 255, 0.92);
+  --foreground:     #1D1D1F;
+  --ink:            #1D1D1F;
+  --ink-2:          #6E6E73;
+  --ink-3:          #98989D;
+  --line:           rgba(0, 0, 0, 0.08);
+  --line-2:         rgba(0, 0, 0, 0.16);
+  --shadow-card:    0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.05);
+  --shadow-hover:   0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 32px rgba(0, 0, 0, 0.09);
+  --specular:       inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* Reset & Base Typography */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background-color: var(--background);
+  /* Dual Ambient Glows (Electric Indigo + Sky Cyan) */
+  background-image:
+    radial-gradient(55% 45% at 78% -8%, rgba(94, 106, 210, 0.13), transparent 62%),
+    radial-gradient(45% 40% at 8% 108%, rgba(64, 143, 227, 0.07), transparent 60%),
+    linear-gradient(180deg, #0B0B0E 0%, #09090B 100%);
+  background-attachment: fixed;
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+html.theme-light body {
+  background-image:
+    radial-gradient(80% 60% at 20% 0%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(70% 50% at 100% 100%, rgba(94, 106, 210, 0.06), transparent 65%),
+    linear-gradient(180deg, #F5F5F7 0%, #EEF0F3 100%);
+}
+
+/* Vercel 3D Perspective Horizon Canvas Overlay (Decorative Background) */
+.perspective-horizon {
+  position: fixed;
+  left: -25%;
+  right: -25%;
+  bottom: -15%;
+  height: 55%;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(94, 106, 210, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 106, 210, 0.09) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transform: perspective(620px) rotateX(63deg);
+  transform-origin: center bottom;
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 85%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 85%);
+}
+
+/* Tactile Micro-Interactions */
+.press { transition: transform 0.15s ease-out; }
+.press:active { transform: scale(0.97); }
+
+/* Glassmorphic Panels & Cards */
+.glass {
+  background: var(--surface-card);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--line);
+  box-shadow: var(--specular), var(--shadow-card);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.2s var(--spring), box-shadow 0.2s var(--spring);
+}
+.glass:hover {
+  border-color: var(--line-2);
+}
+
+/* Header & Navigation Bar */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 60px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: rgba(15, 15, 18, 0.78);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+}
+html.theme-light header {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6B76E5 0%, #5E6AD2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), var(--shadow-pill);
+}
+.brand-title {
+  display: flex;
+  flex-direction: column;
+}
+.brand-title strong { color: var(--ink); line-height: 1.15; }
+.brand-title span { font-size: 11px; color: var(--primary-dark); font-weight: 500; }
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Nav Tabs */
+nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s var(--spring);
+}
+nav button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+}
+html.theme-light nav button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+nav button.on {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--primary-dark);
+  box-shadow: var(--specular), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Main Container */
+main {
+  position: relative;
+  z-index: 5;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 24px 60px;
+}
+
+/* Buttons System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s var(--spring);
+  white-space: nowrap;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.btn:active { transform: scale(0.97); }
+.btn-p {
+  background: linear-gradient(180deg, #6B76E5 0%, #5E6AD2 100%);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), var(--shadow-pill);
+}
+.btn-p:hover {
+  background: linear-gradient(180deg, #7883EE 0%, #6B76E5 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 20px rgba(94, 106, 210, 0.5);
+}
+.btn-danger {
+  color: var(--danger);
+  border-color: rgba(235, 87, 87, 0.28);
+  background: rgba(235, 87, 87, 0.08);
+}
+.btn-danger:hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.btn-mini { height: 28px; padding: 0 10px; font-size: 11.5px; border-radius: 7px; }
+
+/* Stat Cards (High-tech Metrics Grid) */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 540px) { .cards { grid-template-columns: 1fr; } }
+
+.stat-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; width: 64px; height: 64px;
+  background: radial-gradient(circle, var(--accent-glow, rgba(94,106,210,0.15)) 0%, transparent 70%);
+  pointer-events: none;
+}
+.stat-card .v {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+}
+.stat-card .l {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Badges & Status Pills */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 9px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.b-green  { background: var(--success-light); color: #7CDDAA; border: 1px solid rgba(52, 199, 89, 0.25); }
+.b-red    { background: var(--danger-light); color: #F29B9B; border: 1px solid rgba(235, 87, 87, 0.25); }
+.b-orange { background: var(--warning-light); color: #F5D77A; border: 1px solid rgba(255, 149, 0, 0.25); }
+.b-blue   { background: var(--primary-50); color: var(--primary-dark); border: 1px solid rgba(94, 106, 210, 0.3); }
+.b-gray   { background: rgba(255, 255, 255, 0.07); color: var(--ink-2); border: 1px solid var(--line); }
+
+/* Keyframe Animations */
+@keyframes apl-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.2), 0 8px 20px rgba(255, 149, 0, 0.1); }
+  50%      { box-shadow: 0 0 0 8px rgba(255, 149, 0, 0), 0 8px 20px rgba(255, 149, 0, 0.15); }
+}
+.pulse-running {
+  animation: apl-pulse 1.4s ease-in-out infinite;
+  border-color: rgba(255, 149, 0, 0.6) !important;
+}
+
+@keyframes apl-blink {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.2); }
+}
+.blink-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: apl-blink 1s infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 0.8s linear infinite; display: inline-block; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+tr:hover td { background: rgba(255, 255, 255, 0.02); }
+td .prompt {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* iOS Style Switch */
+.sw {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.sw input { opacity: 0; width: 0; height: 0; }
+.sw i {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.22s var(--spring);
+}
+.sw i::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  top: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.22s var(--spring);
+}
+.sw input:checked + i { background: var(--primary); }
+.sw input:checked + i::before { transform: translateX(16px); }
+
+/* 7-Day Chart */
+.chart-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 140px;
+  padding: 14px 4px 4px;
+}
+.chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100px;
+  width: 100%;
+  justify-content: center;
+}
+.chart-bar {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s var(--spring);
+}
+.chart-lbl { font-size: 11px; color: var(--ink-3); font-family: ui-monospace, monospace; }
+
+/* Toast Notification Stack */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-xl);
+  background: rgba(24, 24, 28, 0.95);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--primary);
+  box-shadow: var(--shadow-modal);
+  transform: translateY(10px) scale(0.96);
+  opacity: 0;
+  transition: all 0.25s var(--spring);
+}
+.toast-item.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* Modals */
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dialog-box {
+  width: 440px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: var(--radius-2xl);
+  background: var(--surface-card);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--specular), var(--shadow-modal);
+}
+.dialog-box h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+.dialog-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 12px 0 5px;
+  letter-spacing: 0.04em;
+}
+.dialog-box input, .dialog-box select {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.dialog-box input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WORKFLOW CANVAS STUDIO COMPONENTS (Inspired by FlowNode.vue)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 580px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #0D0D11;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+}
+.canvas-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.flow-svg-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+.flow-edge-path {
+  fill: none;
+  stroke: #5E6AD2;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 6;
+  animation: flowLine 1.5s linear infinite;
+}
+@keyframes flowLine {
+  to { stroke-dashoffset: -24; }
+}
+
+/* Apple HIG Node Card (Cố định width 240px, tuyệt đối không scale khi hover) */
+.flow-node {
+  position: absolute;
+  width: 240px;
+  border-radius: 20px;
+  background: rgba(24, 24, 28, 0.94);
+  backdrop-filter: blur(24px) saturate(200%);
+  border: 0.5px solid var(--line);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 16px 32px -8px rgba(0,0,0,0.55), var(--specular);
+  cursor: grab;
+  z-index: 5;
+  user-select: none;
+  transition: box-shadow 0.25s var(--spring), border-color 0.25s var(--spring);
+}
+.flow-node:hover {
+  border-color: rgba(235, 236, 240, 0.28);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.45), 0 20px 44px -8px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.08);
+}
+.flow-node.selected {
+  border-color: rgba(94, 106, 210, 0.7);
+  box-shadow:
+    0 0 0 2px rgba(94, 106, 210, 0.55),
+    0 0 0 6px rgba(94, 106, 210, 0.16),
+    0 12px 32px rgba(94, 106, 210, 0.18);
+}
+.flow-node-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.flow-node-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.flow-node-info { min-width: 0; flex: 1; }
+.flow-node-title { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.flow-node-sub { font-size: 11px; color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.flow-node-preview {
+  width: 100%;
+  height: 120px;
+  background: #000;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--line);
+}
+.flow-node-preview img, .flow-node-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vid-meta-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}
+
+/* Ports list inside node */
+.flow-ports {
+  padding: 6px 14px 10px;
+  border-top: 0.5px solid var(--line);
+}
+.flow-port-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-2);
+  height: 22px;
+  position: relative;
+}
+.flow-handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--primary);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: crosshair;
+  transition: all 0.15s;
+}
+.flow-handle:hover {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-light);
+}
+.flow-handle-left { left: -19px; }
+.flow-handle-right { right: -19px; }
+
+/* Status capsule bottom right */
+.flow-node-status {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #3A3A42;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px var(--background);
+}
+
+/* Floating Action Toolbar on Canvas */
+.canvas-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(20, 20, 24, 0.88);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--line);
+}
 </style>
 </head>
 <body>
-<div id="loginMask" class="mask" style="display:none">
-  <div class="box">
-    <h2>Admin Dashboard Login</h2>
-    <input id="loginKey" type="password" placeholder="Admin Password" onkeydown="if(event.key==='Enter')submitLogin()">
-    <div class="err" id="loginErr">Incorrect password</div>
-    <button class="btn btn-p" onclick="submitLogin()">Login</button>
-  </div>
-</div>
 
+<!-- 3D Perspective Grid Background -->
+<div class="perspective-horizon"></div>
+
+<!-- Toast Container -->
+<div id="toastStack" class="toast-container"></div>
+
+<!-- Header -->
 <header>
-  <div class="brand"><span class="dot"></span>Dola Pool Dashboard</div>
-  <div class="head-r">
-    <label title="Chế độ ẩn danh (Incognito Mode) cho trình duyệt - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#eef1f0;padding:4px 10px;border-radius:20px;border:1px solid var(--line)">
-      <span style="font-size:12px;font-weight:600;color:var(--text)">Chế độ ẩn danh</span>
+  <div class="brand">
+    <div class="brand-icon"><i class="bi bi-camera-reels-fill"></i></div>
+    <div class="brand-title">
+      <strong>Dola Render Gateway</strong>
+      <span>Motion Studio Pipeline</span>
+    </div>
+  </div>
+  
+  <div class="head-actions">
+    <!-- Incognito Toggle -->
+    <label title="Chế độ ẩn danh (Incognito Mode) cho toàn bộ Pool" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface-2);padding:4px 10px;border-radius:20px;border:1px solid var(--line)">
+      <span style="font-size:11.5px;font-weight:600;color:var(--ink-2)">Ẩn danh</span>
       <span class="sw"><input type="checkbox" id="incognitoSw" onchange="toggleIncognito(this.checked)"><i></i></span>
     </label>
-    <label><input type="checkbox" id="autoCk" checked onchange="autoRefresh=this.checked">Auto Refresh</label>
-    <span id="lastUpdate"></span>
-    <button class="btn" onclick="refresh()">Refresh</button>
-    <button class="btn" onclick="logout()" title="Logout">Logout</button>
+
+    <!-- Theme Switcher -->
+    <button class="btn btn-mini press" onclick="toggleTheme()" title="Chuyển Dark/Light Mode">
+      <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
+    </button>
+
+    <!-- Auto Refresh Toggle -->
+    <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--ink-2)">
+      <input type="checkbox" id="autoCk" checked onchange="autoRefresh=this.checked" style="accent-color:var(--primary)"> Auto
+    </label>
+    
+    <span id="lastUpdate" style="font-size:11px;color:var(--ink-3);font-family:ui-monospace,monospace"></span>
+
+    <button class="btn btn-mini press" onclick="refresh()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+    <button class="btn btn-mini btn-danger press" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
   </div>
 </header>
 
+<!-- Navigation Tabs -->
 <nav>
-  <button class="on" data-tab="dash" onclick="switchTab('dash')">Dashboard</button>
-  <button data-tab="accounts" onclick="switchTab('accounts')">Accounts</button>
-  <button data-tab="tasks" onclick="switchTab('tasks')">Task Queue</button>
-  <button data-tab="keys" onclick="switchTab('keys')">API Keys</button>
+  <button class="on press" data-tab="dash" onclick="switchTab('dash')"><i class="bi bi-grid-1x2-fill"></i> Dashboard</button>
+  <button class="press" data-tab="accounts" onclick="switchTab('accounts')"><i class="bi bi-people-fill"></i> Accounts</button>
+  <button class="press" data-tab="tasks" onclick="switchTab('tasks')"><i class="bi bi-cpu-fill"></i> Task Queue</button>
+  <button class="press" data-tab="keys" onclick="switchTab('keys')"><i class="bi bi-key-fill"></i> API Keys</button>
+  <button class="press" data-tab="canvas" onclick="switchTab('canvas')" style="color:#9AA2F2"><i class="bi bi-diagram-3-fill"></i> Workflow Studio</button>
 </nav>
 
 <main>
+  <!-- TAB 1: DASHBOARD -->
   <section id="tab-dash">
     <div class="cards" id="statCards"></div>
-    <div class="card"><h3>7-Day Video Generation Trend</h3><div class="chart" id="chart"></div></div>
-    <div class="card">
-      <div class="toolbar">
-        <h3 style="margin:0">Account Pool Overview</h3>
-        <label title="Chế độ ẩn danh (Incognito Mode) cho toàn bộ Account Pool - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f8faf9;padding:6px 12px;border-radius:20px;border:1px solid var(--line)">
-          <span style="font-size:13px;font-weight:600;color:var(--text)">🕵️ Chế độ ẩn danh (Chung)</span>
-          <span class="sw"><input type="checkbox" id="incognitoSwPool" onchange="toggleIncognito(this.checked)"><i></i></span>
-          <span id="incognitoStatusBadge" class="badge b-gray">Tắt</span>
-        </label>
+
+    <!-- DOLA VIDEO CREATION STUDIO -->
+    <div class="glass" style="padding:22px;margin-bottom:20px;border:1px solid rgba(124,58,237,0.3);background:linear-gradient(135deg,rgba(124,58,237,0.06) 0%,rgba(10,132,255,0.03) 100%);box-shadow:0 8px 24px rgba(0,0,0,0.12)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;font-size:16px;box-shadow:0 3px 10px rgba(124,58,237,0.3)">
+            <i class="bi bi-camera-reels-fill"></i>
+          </span>
+          <div>
+            <h3 style="font-size:15px;font-weight:700;margin:0">Tạo Video Dola (Prompt Studio)</h3>
+            <span style="font-size:12px;color:var(--ink-2)">Nhập câu lệnh tạo video AI Dola, hỗ trợ thời lượng 10s · 15s · 30s mở rộng</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge b-purple"><i class="bi bi-stars"></i> Seedance AI</span>
+          <span class="badge b-blue" id="availableAccCountBadge">Đang kết nối Pool...</span>
+        </div>
+      </div>
+
+      <!-- Prompt Textarea -->
+      <div style="position:relative;margin-bottom:12px">
+        <textarea id="dolaStudioPrompt" rows="3" placeholder="Nhập câu lệnh (prompt) mô tả video bạn muốn tạo trên Dola (hỗ trợ Tiếng Anh / Tiếng Nhật / Tiếng Việt)..." style="width:100%;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px 14px;font-size:13px;line-height:1.5;resize:vertical;font-family:inherit;box-shadow:inset 0 1px 3px rgba(0,0,0,0.2)"></textarea>
+      </div>
+
+      <!-- Quick Prompt Suggestions / Preset Tags -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        <span style="font-size:11px;color:var(--ink-3);margin-right:4px"><i class="bi bi-lightbulb"></i> Gợi ý prompt:</span>
+        <button type="button" class="btn btn-mini press" style="font-size:11px;padding:3px 8px;background:var(--bg-2);border-color:var(--line)" onclick="setDolaPromptSample('A cinematic 4k drone shot of misty mountain peaks at golden hour, hyper-realistic, dramatic lighting')">🏔️ Drone Hoàng Hôn</button>
+        <button type="button" class="btn btn-mini press" style="font-size:11px;padding:3px 8px;background:var(--bg-2);border-color:var(--line)" onclick="setDolaPromptSample('Cyberpunk futuristic city street with flying neon cars in a rainy night, reflections on asphalt, 8k')">🏎️ Cyberpunk Neon</button>
+        <button type="button" class="btn btn-mini press" style="font-size:11px;padding:3px 8px;background:var(--bg-2);border-color:var(--line)" onclick="setDolaPromptSample('Cute little fluffy baby dragon playing with a glowing crystal in enchanted fairy forest')">🐉 Baby Dragon Cổ Tích</button>
+        <button type="button" class="btn btn-mini press" style="font-size:11px;padding:3px 8px;background:var(--bg-2);border-color:var(--line)" onclick="setDolaPromptSample('Close-up macro of blooming neon lotus flower with bioluminescent water ripples')">🪷 Hoa Sen Phát Sáng</button>
+      </div>
+
+      <!-- Settings & Action Row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid var(--line)">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <!-- Model -->
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--ink-2);font-weight:600"><i class="bi bi-stars"></i> Model:</span>
+            <select id="dolaStudioModel" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="seedance-2.0" selected>Seedance 2.0</option>
+              <option value="seedance-2.5">Seedance 2.5</option>
+            </select>
+          </div>
+
+          <!-- Duration -->
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--ink-2);font-weight:600"><i class="bi bi-clock"></i> Độ dài:</span>
+            <div class="pill-group" id="dolaDurationGroup" style="display:flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:2px">
+              <button type="button" class="btn btn-mini press" data-dur="10" onclick="setDolaDuration(10)" style="padding:4px 9px;border:none;border-radius:6px">10s</button>
+              <button type="button" class="btn btn-mini press" data-dur="15" onclick="setDolaDuration(15)" style="padding:4px 9px;border:none;border-radius:6px">15s</button>
+              <button type="button" class="btn btn-mini btn-p press" data-dur="30" onclick="setDolaDuration(30)" style="padding:4px 9px;border:none;border-radius:6px;background:var(--primary);color:#fff">30s <span style="font-size:9px;background:rgba(255,255,255,0.25);padding:1px 4px;border-radius:4px;margin-left:2px">HD</span></button>
+            </div>
+          </div>
+
+          <!-- Ratio -->
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--ink-2);font-weight:600"><i class="bi bi-aspect-ratio"></i> Tỷ lệ:</span>
+            <select id="dolaStudioRatio" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="16:9" selected>16:9 (Ngang)</option>
+              <option value="9:16">9:16 (Dọc)</option>
+              <option value="1:1">1:1 (Vuông)</option>
+            </select>
+          </div>
+
+          <!-- Account select -->
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--ink-2);font-weight:600"><i class="bi bi-person-badge"></i> Tài khoản:</span>
+            <select id="dolaStudioAccount" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="">Tự động điều phối (Auto Pool)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="btnDolaStudioLiveJev" type="button" class="btn press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,0.3)" onclick="openLiveFlowModal()">
+            <i class="bi bi-broadcast"></i> Tạo & Xem Live Flow (Google)
+          </button>
+          <button id="btnDolaStudioSubmit" type="button" class="btn btn-p press" onclick="submitDolaTask()">
+            <i class="bi bi-send-fill"></i> Tạo Video Ngay
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="font-size:14px;font-weight:700"><i class="bi bi-graph-up text-primary"></i> 7-Day Video Generation Trend</h3>
+        <span style="font-size:11px;color:var(--ink-3)">Hoàn thành / Thất bại</span>
+      </div>
+      <div class="chart-wrap" id="chart"></div>
+    </div>
+
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:700"><i class="bi bi-hdd-network-fill text-primary"></i> Account Pool Status</h3>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-mini press" style="background:#0A84FF;color:#fff;border-color:transparent" onclick="openScanProfiles()">
+            <i class="bi bi-search"></i> Quét Profile Mac
+          </button>
+        </div>
       </div>
       <div id="perAccount"></div>
     </div>
   </section>
 
+  <!-- TAB 2: ACCOUNTS -->
   <section id="tab-accounts" style="display:none">
-    <div class="card">
-      <div class="toolbar">
-        <h3 style="margin:0">Account List</h3>
-        <div style="display:flex;align-items:center;gap:12px">
-          <label title="Chế độ ẩn danh (Incognito Mode) cho toàn bộ Account Pool - Mặc định tắt" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f8faf9;padding:6px 12px;border-radius:20px;border:1px solid var(--line)">
-            <span style="font-size:13px;font-weight:600;color:var(--text)">🕵️ Chế độ ẩn danh (Chung)</span>
-            <span class="sw"><input type="checkbox" id="incognitoSwAccounts" onchange="toggleIncognito(this.checked)"><i></i></span>
-          </label>
-          <button class="btn btn-p" onclick="openAddAccount()">＋ Add Account</button>
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:700">Account Management</h3>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-mini press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,0.3)" onclick="openLiveFlowModal()">
+            <i class="bi bi-broadcast"></i> Live Flow
+          </button>
+          <button class="btn btn-mini press" style="background:#7C3AED;color:#fff;border-color:transparent" onclick="openInspectDolaElements()">
+            <i class="bi bi-crosshair"></i> Vị trí phần tử Dola
+          </button>
+          <button class="btn btn-mini press" style="background:#0A84FF;color:#fff;border-color:transparent" onclick="openScanProfiles()">
+            <i class="bi bi-search"></i> Quét Profile Chrome
+          </button>
+          <button class="btn btn-mini btn-p press" onclick="openAddAccount()">
+            <i class="bi bi-plus-lg"></i> Thêm Account
+          </button>
         </div>
       </div>
       <div id="accountsTable"></div>
     </div>
   </section>
 
+  <!-- TAB 3: TASK QUEUE -->
   <section id="tab-tasks" style="display:none">
-    <div class="card"><h3>Task Queue (Last 50)</h3><div id="tasksTable"></div></div>
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:700">Task Queue (Last 50 Jobs)</h3>
+        <span style="font-size:12px;color:var(--ink-2)"><i class="bi bi-clock-history"></i> Tự động đồng bộ mỗi 10s</span>
+      </div>
+      <div id="tasksTable"></div>
+    </div>
   </section>
 
+  <!-- TAB 4: API KEYS -->
   <section id="tab-keys" style="display:none">
-    <div class="card">
-      <div class="toolbar">
-        <h3 style="margin:0">API Keys</h3>
-        <button class="btn btn-p" onclick="openCreateKey()">＋ Create API Key</button>
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="font-size:14px;font-weight:700">API Keys Management</h3>
+        <button class="btn btn-mini btn-p press" onclick="openCreateKey()">
+          <i class="bi bi-plus-lg"></i> Tạo API Key
+        </button>
       </div>
-      <div class="hint" style="margin-bottom:12px">Each Key can configure daily quota, concurrency, and durations; 0 = unlimited. Environment keys are always active and not listed here.</div>
+      <p style="font-size:12px;color:var(--ink-3);margin-bottom:16px">Mỗi Key kiểm soát hạn mức daily quota, số tác vụ song song (concurrency) và độ dài video cho phép (10s, 15s, 30s).</p>
       <div id="keysTable"></div>
+    </div>
+  </section>
+
+  <!-- TAB 5: WORKFLOW STUDIO (Interactive Flow Canvas directly connected to Real Task Pipeline) -->
+  <section id="tab-canvas" style="display:none">
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="font-size:15px;font-weight:700"><i class="bi bi-diagram-3-fill" style="color:var(--primary)"></i> Visual Workflow Pipeline (Real-Time)</h3>
+          <p style="font-size:12px;color:var(--ink-2)">Trực quan hóa quy trình: Nhập Prompt -> Browser Worker Pool render video -> Xuất bản file MP4 thật.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="btnRunRealWorkflow" class="btn btn-mini btn-p press" onclick="runRealWorkflow()"><i class="bi bi-play-fill"></i> Chạy Test Workflow Thật</button>
+          <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask()"><i class="bi bi-arrow-counterclockwise"></i> Đồng Bộ Task Mới Nhất</button>
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-container" id="canvasArea">
+        <div class="canvas-grid"></div>
+        
+        <!-- SVG Connection Lines -->
+        <svg class="flow-svg-layer" id="flowSvg">
+          <path id="edge1" class="flow-edge-path" d="M 280,180 C 330,180 340,180 390,180" />
+          <path id="edge2" class="flow-edge-path" d="M 630,180 C 680,180 690,180 740,180" />
+        </svg>
+
+        <!-- Node 1: Entry Prompt -->
+        <div class="flow-node selected" id="node1" style="left:40px;top:60px" onclick="selectNode(this)">
+          <div class="flow-node-header">
+            <div class="flow-node-icon" style="background:rgba(94,106,210,0.18);color:#9AA2F2">
+              <i class="bi bi-chat-square-text-fill"></i>
+            </div>
+            <div class="flow-node-info">
+              <div class="flow-node-title">1. Prompt & Config</div>
+              <div class="flow-node-sub" id="node1Sub">Cấu hình đầu vào</div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px;font-size:11.5px;color:var(--ink-2);max-height:75px;overflow:hidden;text-overflow:ellipsis" id="node1PromptText">
+            Chưa có tác vụ nào được chọn
+          </div>
+          <div class="flow-ports" style="padding:4px 14px 10px;display:flex;gap:6px;flex-wrap:wrap" id="node1Badges">
+            <span class="badge b-purple" id="node1ModelBadge">Seedance 2.0</span>
+            <span class="badge b-blue" id="node1RatioBadge">16:9</span>
+            <span class="badge b-gray" id="node1DurBadge">10s</span>
+          </div>
+          <div class="flow-node-status" id="node1StatusPill" style="background:#34C759"><i class="bi bi-check"></i></div>
+        </div>
+
+        <!-- Node 2: Dola Video Worker Engine -->
+        <div class="flow-node" id="node2" style="left:390px;top:60px" onclick="selectNode(this)">
+          <div class="flow-node-header">
+            <div class="flow-node-icon" style="background:rgba(10,132,255,0.18);color:#0A84FF">
+              <i class="bi bi-cpu-fill"></i>
+            </div>
+            <div class="flow-node-info">
+              <div class="flow-node-title">2. Dola Browser Worker</div>
+              <div class="flow-node-sub" id="node2StatusSub">Browser Pool · Sẵn sàng</div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px;font-size:11.5px;color:var(--ink-2)" id="node2Detail">
+            <div>Tài khoản: <strong id="node2Account" style="color:var(--ink)">Auto Pool</strong></div>
+            <div style="margin-top:4px">Task ID: <code id="node2TaskId" style="color:var(--primary-dark)">—</code></div>
+            <div style="margin-top:4px">Tiến độ: <span id="node2ProgressText" class="badge b-gray">Chờ lệnh</span></div>
+          </div>
+          <div class="flow-node-status" id="node2StatusPill" data-state="idle" style="background:#3A3A42"><i class="bi bi-dot"></i></div>
+        </div>
+
+        <!-- Node 3: MP4 Export & Video Player -->
+        <div class="flow-node" id="node3" style="left:740px;top:60px;min-width:280px" onclick="selectNode(this)">
+          <div class="flow-node-header">
+            <div class="flow-node-icon" style="background:rgba(52,199,89,0.18);color:#34C759">
+              <i class="bi bi-file-earmark-play-fill"></i>
+            </div>
+            <div class="flow-node-info">
+              <div class="flow-node-title">3. Video MP4 Kết Quả</div>
+              <div class="flow-node-sub" id="node3Sub">Thư viện videos/</div>
+            </div>
+          </div>
+          <div id="node3Content" style="padding:0 14px 14px">
+            <div id="node3Placeholder" style="text-align:center;padding:24px 10px;color:var(--ink-3);border:1px dashed var(--line);border-radius:8px">
+              <i class="bi bi-film" style="font-size:26px;opacity:0.6;display:block;margin-bottom:6px"></i>
+              <span>Chưa có video render</span>
+            </div>
+            <div id="node3PlayerWrap" style="display:none">
+              <video id="node3Video" controls style="width:100%;border-radius:8px;max-height:160px;background:#000" preload="metadata"></video>
+              <div style="display:flex;gap:6px;margin-top:8px;justify-content:center">
+                <a id="node3DownloadBtn" href="#" download class="btn btn-mini btn-p press" style="padding:4px 10px;font-size:11px"><i class="bi bi-download"></i> Tải MP4</a>
+                <button class="btn btn-mini press" style="padding:4px 10px;font-size:11px" onclick="openFullscreenCanvasVideo()"><i class="bi bi-arrows-fullscreen"></i> Phóng To</button>
+              </div>
+            </div>
+          </div>
+          <div class="flow-node-status" id="node3StatusPill" style="background:#3A3A42"><i class="bi bi-dot"></i></div>
+        </div>
+
+        <!-- Floating Selection Toolbar -->
+        <div class="canvas-toolbar">
+          <span style="font-size:11px;font-weight:700;color:var(--primary-dark)" id="canvasToolbarTitle">Pipeline Live Sync</span>
+          <div style="width:1px;height:14px;background:var(--line)"></div>
+          <button class="btn btn-mini press" onclick="switchTab('tasks')"><i class="bi bi-list-task"></i> Xem Task Queue</button>
+          <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask()"><i class="bi bi-arrow-repeat"></i> Cập Nhật</button>
+        </div>
+      </div>
     </div>
   </section>
 </main>
 
-<div id="dlg" class="dialog" style="display:none"><div class="box" id="dlgBox"></div></div>
-<div id="videoModal" class="dialog" style="display:none">
-  <div class="box" style="width:640px">
-    <h2>Video Preview</h2>
-    <video id="videoEl" controls autoplay style="width:100%;border-radius:8px"></video>
-    <div class="row"><button class="btn" onclick="closeVideo()">Close</button></div>
+<!-- Login Modal -->
+<div id="loginMask" class="mask" style="display:none">
+  <div class="dialog-box">
+    <div style="text-align:center;margin-bottom:18px">
+      <div class="brand-icon" style="margin:0 auto 12px;width:48px;height:48px;font-size:24px"><i class="bi bi-shield-lock-fill"></i></div>
+      <h2>Admin Dashboard Login</h2>
+      <p style="font-size:12px;color:var(--ink-2)">Nhập mật khẩu quản trị viên để tiếp tục</p>
+    </div>
+    <input id="loginKey" type="password" placeholder="Admin Password" onkeydown="if(event.key==='Enter')submitLogin()">
+    <div id="loginErr" style="color:var(--danger);font-size:12px;margin:8px 0;display:none"><i class="bi bi-exclamation-triangle-fill"></i> Mật khẩu không chính xác</div>
+    <button class="btn btn-p press" style="width:100%;height:40px;margin-top:10px" onclick="submitLogin()">Đăng Nhập</button>
+  </div>
+</div>
+
+<!-- Generic Dialog -->
+<div id="dlg" class="mask" style="display:none">
+  <div class="dialog-box" id="dlgBox"></div>
+</div>
+
+<!-- Video Preview Modal with Resolution & FPS Inspector -->
+<div id="videoModal" class="mask" style="display:none">
+  <div class="dialog-box" style="width:680px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <i class="bi bi-play-circle-fill text-primary" style="font-size:20px"></i>
+        <h2 style="margin:0">Video Player Inspector</h2>
+      </div>
+      <span id="modalVidMeta" class="badge b-blue">Đang nạp…</span>
+    </div>
+    <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:16px">
+      <video id="videoEl" controls autoplay playsinline style="width:100%;display:block;max-height:480px" onloadedmetadata="onVideoLoadedMeta(event)"></video>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <a id="videoDownloadBtn" href="#" target="_blank" class="btn btn-mini press" download><i class="bi bi-download"></i> Tải MP4 về máy</a>
+      <button class="btn btn-mini press" onclick="closeVideo()">Đóng</button>
+    </div>
   </div>
 </div>
 
 <script>
-const LS_KEY='dola_admin_key';
-let adminKey=localStorage.getItem(LS_KEY)||'';
-let autoRefresh=true, curTab='dash', timer=null;
+const LS_KEY = 'dola_admin_key';
+let adminKey = localStorage.getItem(LS_KEY) || '';
+let autoRefresh = true, curTab = 'dash', timer = null;
 
-function q(s){return document.querySelector(s);}
-function show(id){document.getElementById(id).style.display='flex';}
-function hide(id){document.getElementById(id).style.display='none';}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function fmt(ts){if(!ts)return '-';const d=new Date(ts*1000);const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
-function fmtHM(ts){const d=new Date(ts*1000);const p=n=>String(n).padStart(2,'0');return `${p(d.getHours())}:${p(d.getMinutes())}`;}
+function q(s){ return document.querySelector(s); }
+function show(id){ document.getElementById(id).style.display = 'flex'; }
+function hide(id){ document.getElementById(id).style.display = 'none'; }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function fmt(ts){ if(!ts) return '-'; const d = new Date(ts * 1000); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function fmtHM(ts){ if(!ts) return '-'; const d = new Date(ts * 1000); const p = n => String(n).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}`; }
 
-async function api(path,opts={}){
-  const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json','X-Admin-Key':adminKey,...(opts.headers||{})},body:opts.body?JSON.stringify(opts.body):undefined});
-  if(r.status===401){showLogin();throw new Error('unauthorized');}
-  const text=await r.text();
-  let data={};try{data=text?JSON.parse(text):{};}catch(e){}
-  if(!r.ok)throw new Error(data.detail||(`${r.status} ${text.slice(0,120)}`));
+/* Toast Notification System */
+function toast(title, message, variant = 'info') {
+  const stack = q('#toastStack');
+  const item = document.createElement('div');
+  const borderColors = { success: '#34C759', danger: '#EB5757', warning: '#FF9500', info: '#5E6AD2' };
+  const iconClasses = { success: 'bi-check-circle-fill', danger: 'bi-exclamation-octagon-fill', warning: 'bi-exclamation-triangle-fill', info: 'bi-info-circle-fill' };
+  
+  item.className = 'toast-item';
+  item.style.borderLeftColor = borderColors[variant] || borderColors.info;
+  item.innerHTML = `
+    <i class="bi ${iconClasses[variant] || iconClasses.info}" style="color:${borderColors[variant] || borderColors.info};font-size:18px;margin-top:1px"></i>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:12.5px;color:var(--ink)">${esc(title)}</div>
+      <div style="font-size:11.5px;color:var(--ink-2);margin-top:2px">${esc(message)}</div>
+    </div>
+    <button style="background:none;border:none;color:var(--ink-3);cursor:pointer" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+  `;
+  stack.appendChild(item);
+  setTimeout(() => item.classList.add('show'), 10);
+  setTimeout(() => {
+    item.classList.remove('show');
+    setTimeout(() => item.remove(), 260);
+  }, 4000);
+}
+
+/* Theme Toggle */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.classList.toggle('theme-light');
+  const icon = q('#themeIcon');
+  if (isLight) {
+    icon.className = 'bi bi-sun-fill';
+    localStorage.setItem('dola_theme', 'light');
+    toast('Chế độ sáng', 'Đã chuyển sang giao diện Apple Light', 'info');
+  } else {
+    icon.className = 'bi bi-moon-stars-fill';
+    localStorage.setItem('dola_theme', 'dark');
+    toast('Chế độ tối', 'Đã chuyển sang giao diện Graphite Dark', 'info');
+  }
+}
+if (localStorage.getItem('dola_theme') === 'light') {
+  document.documentElement.classList.add('theme-light');
+  q('#themeIcon').className = 'bi bi-sun-fill';
+}
+
+/* API Communication */
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey, ...(opts.headers || {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (r.status === 401) { showLogin(); throw new Error('unauthorized'); }
+  const text = await r.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch(e){}
+  if (!r.ok) throw new Error(data.detail || (`${r.status} ${text.slice(0, 120)}`));
   return data;
 }
 
-function showLogin(){hide('dlg');show('loginMask');q('#loginErr').style.display='none';}
-async function submitLogin(){
-  const key=q('#loginKey').value;
-  try{await api('/api/admin/login',{method:'POST',body:{key}});}
-  catch(e){q('#loginErr').style.display='block';return;}
-  adminKey=key;localStorage.setItem(LS_KEY,key);
-  hide('loginMask');refresh();
+function showLogin() { hide('dlg'); show('loginMask'); q('#loginErr').style.display = 'none'; }
+async function submitLogin() {
+  const key = q('#loginKey').value;
+  try { await api('/api/admin/login', { method: 'POST', body: { key } }); }
+  catch(e) { q('#loginErr').style.display = 'block'; return; }
+  adminKey = key;
+  localStorage.setItem(LS_KEY, key);
+  hide('loginMask');
+  toast('Đăng nhập thành công', 'Chào mừng bạn quay lại hệ thống Dola Studio', 'success');
+  refresh();
 }
-function logout(){adminKey='';localStorage.removeItem(LS_KEY);showLogin();}
+function logout() { adminKey = ''; localStorage.removeItem(LS_KEY); showLogin(); }
 
-function switchTab(t){
-  curTab=t;
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  ['dash','accounts','tasks','keys'].forEach(x=>{q('#tab-'+x).style.display=x===t?'block':'none';});
+function switchTab(t) {
+  curTab = t;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['dash', 'accounts', 'tasks', 'keys', 'canvas'].forEach(x => {
+    const el = q('#tab-' + x);
+    if(el) el.style.display = (x === t) ? 'block' : 'none';
+  });
   refresh();
 }
 
-async function refresh(){
-  if(q('#loginMask').style.display!=='none')return;
-  q('#lastUpdate').textContent='Updated at '+new Date().toLocaleTimeString();
+async function refresh() {
+  if (q('#loginMask').style.display !== 'none') return;
+  q('#lastUpdate').textContent = 'Live · ' + new Date().toLocaleTimeString();
   loadSettings();
-  try{
-    if(curTab==='dash')await loadDash();
-    else if(curTab==='accounts')await loadAccounts();
-    else if(curTab==='tasks')await loadTasks();
-    else if(curTab==='keys')await loadKeys();
-  }catch(e){if(e.message!=='unauthorized'){/* silent */}}
+  try {
+    if (curTab === 'dash') await loadDash();
+    else if (curTab === 'accounts') await loadAccounts();
+    else if (curTab === 'tasks') await loadTasks();
+    else if (curTab === 'keys') await loadKeys();
+    else if (curTab === 'canvas') await syncCanvasWithLatestTask();
+  } catch(e) {
+    if (e.message !== 'unauthorized') { console.error(e); }
+  }
 }
 
-async function loadSettings(){
-  try{
-    const s=await api('/api/admin/settings');
-    ['#incognitoSw','#incognitoSwPool','#incognitoSwAccounts'].forEach(sel=>{
-      const sw=q(sel);
-      if(sw)sw.checked=!!s.incognito;
-    });
-    const badge=q('#incognitoStatusBadge');
-    if(badge){
-      badge.textContent=s.incognito?'Bật':'Tắt';
-      badge.className='badge '+(s.incognito?'b-green':'b-gray');
-    }
-  }catch(e){}
+async function loadSettings() {
+  try {
+    const s = await api('/api/admin/settings');
+    const sw = q('#incognitoSw');
+    if (sw) sw.checked = !!s.incognito;
+  } catch(e){}
 }
 
-async function toggleIncognito(on){
-  try{
-    await api('/api/admin/settings',{method:'PATCH',body:{incognito:on}});
-    ['#incognitoSw','#incognitoSwPool','#incognitoSwAccounts'].forEach(sel=>{
-      const sw=q(sel);
-      if(sw)sw.checked=on;
-    });
-    const badge=q('#incognitoStatusBadge');
-    if(badge){
-      badge.textContent=on?'Bật':'Tắt';
-      badge.className='badge '+(on?'b-green':'b-gray');
-    }
-  }catch(e){
-    alert('Không thể lưu cài đặt: '+e.message);
+async function toggleIncognito(on) {
+  try {
+    await api('/api/admin/settings', { method: 'PATCH', body: { incognito: on } });
+    toast('Cài đặt ẩn danh', `Đã ${on ? 'BẬT' : 'TẮT'} chế độ ẩn danh cho Pool`, 'info');
+  } catch(e) {
+    toast('Lỗi', 'Không thể lưu cài đặt: ' + e.message, 'danger');
     loadSettings();
   }
 }
 
-async function setAccIncognito(name,on){
-  try{
-    await api('/api/admin/accounts/'+name,{method:'PATCH',body:{incognito:on}});
-  }catch(e){
-    alert('Không thể lưu cài đặt ẩn danh cho '+name+': '+e.message);
-  }
-  refresh();
-}
+/* ---- TAB 1: DASHBOARD ---- */
+async function loadDash() {
+  const st = await api('/api/admin/stats');
+  const sr = st.success_rate == null ? '—' : (st.success_rate * 100).toFixed(0) + '%';
+  
+  q('#statCards').innerHTML = `
+    <div class="glass stat-card" style="--accent-glow:rgba(52,199,89,0.2)">
+      <div class="l"><i class="bi bi-check-circle-fill text-green-500" style="color:var(--success)"></i> Hoàn Thành Hôm Nay</div>
+      <div class="v">${st.today_completed}</div>
+    </div>
+    <div class="glass stat-card" style="--accent-glow:rgba(235,87,87,0.2)">
+      <div class="l"><i class="bi bi-x-circle-fill" style="color:var(--danger)"></i> Thất Bại Hôm Nay</div>
+      <div class="v">${st.today_failed}</div>
+    </div>
+    <div class="glass stat-card" style="--accent-glow:rgba(94,106,210,0.25)">
+      <div class="l"><i class="bi bi-percent" style="color:var(--primary)"></i> Tỉ Lệ Thành Công</div>
+      <div class="v">${sr}</div>
+    </div>
+    <div class="glass stat-card" style="--accent-glow:rgba(255,149,0,0.2)">
+      <div class="l"><i class="bi bi-hdd-stack-fill" style="color:var(--warning)"></i> Accounts Khả Dụng</div>
+      <div class="v">${st.available_accounts} <span style="font-size:16px;color:var(--ink-2);font-weight:500">/ ${st.total_accounts} (${st.total_remaining} left)</span></div>
+    </div>
+  `;
 
-/* ---- Dashboard ---- */
-async function loadDash(){
-  const st=await api('/api/admin/stats');
-  const sr=st.success_rate==null?'—':(st.success_rate*100).toFixed(0)+'%';
-  q('#statCards').innerHTML=`
-    <div class="stat s1"><div class="v">${st.today_completed}</div><div class="l">Completed Today</div></div>
-    <div class="stat s2"><div class="v">${st.today_failed}</div><div class="l">Failed Today</div></div>
-    <div class="stat s3"><div class="v">${sr}</div><div class="l">Success Rate</div></div>
-  <div class="stat s4"><div class="v">${st.available_accounts}/${st.total_accounts}</div><div class="l">Available · ${st.total_remaining} Left</div></div>`;
-  const max=Math.max(1,...st.per_day.map(d=>d.completed+d.failed));
-  q('#chart').innerHTML=st.per_day.map(d=>`
-    <div class="col">
-      <div class="bars">
-        <div class="bar" style="height:${Math.round(d.completed/max*100)}px;background:#00b875" title="Generated ${d.completed}"></div>
-        <div class="bar" style="height:${Math.round(d.failed/max*100)}px;background:#e5484d" title="Failed ${d.failed}"></div>
+  // Render chart
+  const max = Math.max(1, ...st.per_day.map(d => d.completed + d.failed));
+  q('#chart').innerHTML = st.per_day.map(d => `
+    <div class="chart-col">
+      <div class="chart-bars">
+        <div class="chart-bar" style="height:${Math.round(d.completed / max * 100)}px;background:linear-gradient(180deg,#34C759,#248A3D)" title="Completed: ${d.completed}"></div>
+        <div class="chart-bar" style="height:${Math.round(d.failed / max * 100)}px;background:linear-gradient(180deg,#EB5757,#B83232)" title="Failed: ${d.failed}"></div>
       </div>
-      <div class="lbl">${d.day}</div>
-    </div>`).join('');
-  q('#perAccount').innerHTML=table(
-    ['Account','Status','Dispatch','Ẩn danh','Remaining Today','Total Generated','Last Used'],
-    st.per_account.map(a=>[
-      accLabel(a),
+      <div class="chart-lbl">${d.day}</div>
+    </div>
+  `).join('');
+
+  // Per Account table
+  q('#perAccount').innerHTML = table(
+    ['Account', 'Trạng Thái', 'Dispatch', 'Ẩn Danh', 'Hạn Mức Hôm Nay', 'Tổng Đã Tạo', 'Lần Dùng Cuối'],
+    st.per_account.map(a => [
+      `<strong style="color:var(--ink)">${esc(a.name)}</strong>${a.email ? `<div style="font-size:11px;color:var(--ink-2)">${esc(a.email)}</div>` : ''}`,
       statusBadge(a),
-      `<label class="sw" title="Dispatch"><input type="checkbox" ${a.scheduling?'checked':''} onchange="setSched('${a.name}',this.checked)"><i></i></label>`,
-      `<label class="sw" title="Chế độ ẩn danh cho ${esc(a.name)}"><input type="checkbox" ${a.incognito?'checked':''} onchange="setAccIncognito('${a.name}',this.checked)"><i></i></label>`,
-      `<b>${a.used_today}</b> / ${a.limit}<span class="tiny"> (logged)</span>`,
-      a.completed_total||0,
+      `<label class="sw"><input type="checkbox" ${a.scheduling ? 'checked' : ''} onchange="setSched('${a.name}', this.checked)"><i></i></label>`,
+      `<label class="sw"><input type="checkbox" ${a.incognito ? 'checked' : ''} onchange="setAccIncognito('${a.name}', this.checked)"><i></i></label>`,
+      `<b style="font-family:monospace">${a.used_today}</b> / ${a.limit}`,
+      `<span style="font-family:monospace">${a.completed_total || 0}</span>`,
       fmt(a.last_used_at)
     ])
   );
-}
 
-function accLabel(x){return x.email?`<div>${esc(x.email)}</div>`:'<span class="tiny">No Email</span>';}
-function statusBadge(a){
-  if(a.busy)return '<span class="badge b-blue">Generating</span>';
-  if(a.rate_limited)return '<span class="badge b-orange">Rate limited until '+fmt(a.rate_limited_until)+'</span>';
-  if(a.quota_blocked)return '<span class="badge b-orange">Quota blocked until '+fmt(a.quota_blocked_until)+'</span>';
-  if(a.cooling)return '<span class="badge b-orange">Cooldown until '+fmtHM(a.cooldown_until)+'</span>';
-  if(a.login_ok===0)return '<span class="badge b-red">Expired</span>';
-  if(a.login_ok===1)return '<span class="badge b-green">Active</span>';
-  return '<span class="badge b-gray">Unverified</span>';
-}
-
-function table(heads,rows){
-  return `<table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${heads.length}" class="empty">No data</td></tr>`}</tbody></table>`;
-}
-
-async function setSched(name,on){
-  try{await api('/api/admin/accounts/'+name,{method:'PATCH',body:{scheduling:on}});}catch(e){alert(e.message);}refresh();
-}
-
-/* ---- Accounts ---- */
-async function loadAccounts(){
-  const [a,j]=await Promise.all([api('/api/admin/accounts'),api('/api/admin/jobs')]);
-  const jobs=j.jobs||{};
-  const rows=a.accounts.map(x=>{
-    const jb=jobs[x.name];
-    const badge=(jb&&jb.kind==='add'&&jb.status==='running')?'<span class="badge b-blue">Adding</span>'
-      :(jb&&jb.kind==='add'&&jb.status==='failed')?'<span class="badge b-red">Add Failed</span>'
-      :statusBadge(x);
-    const warn=(jb&&jb.status==='failed')?' <span class="tiny" title="'+esc(jb.error)+'">⚠</span>':'';
-    return [
-      `<span class="account-id">${esc(x.name)}</span>`,
-      accLabel(x)+warn,
-      badge,
-      `<label class="sw" title="Dispatch"><input type="checkbox" ${x.scheduling?'checked':''} onchange="setSched('${x.name}',this.checked)"><i></i></label>`,
-      `<label class="sw" title="Chế độ ẩn danh cho ${esc(x.name)}"><input type="checkbox" ${x.incognito?'checked':''} onchange="setAccIncognito('${x.name}',this.checked)"><i></i></label>`,
-      `<b>${x.used_today}</b> / ${x.limit}`,
-      fmt(x.last_used_at),
-      fmt(x.created_at),
-      `<button class="btn" style="margin-right:6px" onclick="verify('${x.name}',this)">Verify</button><button class="btn btn-danger" onclick="delAccount('${x.name}')">Delete</button>`
-    ];
-  });
-  q('#accountsTable').innerHTML=table(['Account ID','Name','Status','Dispatch','Ẩn danh','Remaining','Last Used','Created At','Actions'],rows);
-}
-
-async function verify(name,btn){
-  btn.disabled=true;const old=btn.textContent;btn.textContent='Verifying…';
-  try{const r=await api('/api/admin/accounts/'+name+'/verify',{method:'POST'});
-    alert(name+' Session: '+(r.ok?'Active ✓':'Expired ✗'));
-  }catch(e){alert(e.message);}
-  btn.disabled=false;btn.textContent=old;refresh();
-}
-
-async function delAccount(name){
-  if(!confirm('Delete account '+name+'? This will remove its profile directory.'))return;
-  try{await api('/api/admin/accounts/'+name,{method:'DELETE'});}catch(e){alert(e.message);}refresh();
-}
-
-function openAddAccount(){
-  let def='acc2';try{const n=document.querySelectorAll('#accountsTable tbody tr').length;def='acc'+(n+1);}catch(e){}
-  showDlg(`<h2>Add Account</h2>
-    <label>Account Name</label><input id="f_name" value="${def}">
-    <label>Google Email</label><input id="f_email" placeholder="xxx@yy.asia">
-    <label>Password</label><input id="f_pass" type="password">
-    <label>TOTP Secret (2FA)</label><input id="f_totp" placeholder="2FA secret">
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
-      <input type="checkbox" id="f_incognito" style="width:auto;margin:0"> Chạy ở chế độ ẩn danh (Incognito)
-    </label>
-    <div class="row"><button class="btn" onclick="hide('dlg')">Cancel</button><button class="btn btn-p" onclick="submitAddAccount()">Start Login</button></div>`);
-}
-async function submitAddAccount(){
-  const body={
-    name:q('#f_name').value.trim(),
-    email:q('#f_email').value.trim(),
-    password:q('#f_pass').value,
-    totp:q('#f_totp').value.trim(),
-    incognito:q('#f_incognito')?.checked||false
-  };
-  if(!body.name||!body.email||!body.password)return alert('Please enter account name, email and password');
-  try{await api('/api/admin/accounts',{method:'POST',body});}catch(e){return alert(e.message);}
-  hide('dlg');refresh();
-}
-
-/* ---- Task Queue ---- */
-async function loadTasks(){
-  const r=await api('/api/admin/tasks?limit=50');
-  const sb={'queued':'<span class="badge b-gray">Queued</span>','processing':'<span class="badge b-blue">Processing</span>','completed':'<span class="badge b-green">Completed</span>','failed':'<span class="badge b-red">Failed</span>'};
-  const rows=r.tasks.map(t=>[
-    '<span class="tiny" title="'+esc(t.id)+'">'+t.id.replace('video_','').slice(0,10)+'</span>',
-    '<span class="prompt" title="'+esc(t.prompt||'')+'">'+esc(t.prompt||'')+'</span>',
-    t.account||'-',
-    t.api_key_name||'—',
-    (t.duration||10)+'s',
-    sb[t.status]||'<span class="badge b-gray">'+esc(t.status)+'</span>',
-    fmt(t.created_at),
-    t.video_url
-      ?'<div class="video-wrap"><a href="'+esc(t.video_url)+'" target="_blank">Open</a><button class="btn" onclick="playVideo(&quot;'+esc(t.video_url)+'&quot;)">Preview</button></div>'
-      :(t.status==='failed'?'<span class="tiny" title="'+esc(t.error||'')+'">'+esc((t.error||'').slice(0,30))+'</span>':'—')
-  ]);
-  q('#tasksTable').innerHTML=table(['Task ID','Prompt','Account','Client','Duration','Status','Created At','Video'],rows);
-}
-
-function playVideo(url){q('#videoEl').src=url;show('videoModal');}
-function closeVideo(){q('#videoEl').pause();q('#videoEl').src='';hide('videoModal');}
-
-/* ---- API Keys ---- */
-async function loadKeys(){
-  const r=await api('/api/admin/keys');
-  const mask=k=>'sk-'+k.slice(3,9)+'…'+k.slice(-4);
-  const rows=r.keys.map(k=>[
-    '<span style="font-family:monospace">'+mask(k.key)+'</span>',
-    k.name||'—',
-    (k.allowed_durations||[]).join(' / ')+' s',
-    (k.daily_limit?`${k.today_total} / ${k.daily_limit}`:`${k.today_total} / Unlimited`),
-    (k.concurrency_limit?`${k.today_active} / ${k.concurrency_limit}`:`${k.today_active} / Unlimited`)+(k.today_queued?` <span class=\"tiny\">Queued ${k.today_queued}</span>`:''),
-    `<label class="sw"><input type="checkbox" ${k.enabled?'checked':''} onchange="setKey('${k.key}',this.checked)"><i></i></label>`,
-    fmt(k.last_used_at),
-    `<button class="btn" style="margin-right:6px" onclick="openEditKey('${k.key}')">Config</button><button class="btn btn-danger" onclick="delKey('${k.key}')">Delete</button>`
-  ]);
-  q('#keysTable').innerHTML=table(['Key','Name','Allowed Duration','Tasks Today','Concurrency','Enabled','Last Used','Actions'],rows)
-    +(r.env_keys>0?`<div class="hint" style="margin-top:10px">${r.env_keys} environment key(s) (always valid, read-only)</div>`:"");
-}
-async function setKey(key,on){
-  try{await api('/api/admin/keys/'+encodeURIComponent(key),{method:'PATCH',body:{enabled:on}});}catch(e){alert(e.message);}refresh();
-}
-async function delKey(key){
-  if(!confirm('Delete this API key? External callers will fail immediately.'))return;
-  try{await api('/api/admin/keys/'+encodeURIComponent(key),{method:'DELETE'});}catch(e){alert(e.message);}refresh();
-}
-function durationChecks(values){
-  values=values||[10,15,30];
-  return [10,15,30].map(v=>`<label style="display:inline-flex;align-items:center;gap:4px;margin-right:12px"><input type="checkbox" id="f_d${v}" ${values.includes(v)?'checked':''}>${v}s</label>`).join('');
-}
-function openCreateKey(){
-  showDlg(`<h2>Create API Key</h2>
-    <label>Name (Optional)</label><input id="f_kname" placeholder="e.g. Client A">
-    <label>Daily Task Limit (0 = Unlimited)</label><input id="f_daily" type="number" min="0" value="0">
-    <label>Concurrency Limit (0 = Unlimited)</label><input id="f_conc" type="number" min="0" value="0">
-    <label>Allowed Video Durations</label><div style="padding:8px 0">${durationChecks()}</div>
-    <label>Expiration Timestamp (Optional, Empty = Permanent)</label><input id="f_exp" type="number" min="0" placeholder="Unix Timestamp">
-    <div class="row"><button class="btn" onclick="hide('dlg')">Cancel</button><button class="btn btn-p" onclick="submitCreateKey()">Create</button></div>`);
-}
-function selectedDurations(){return [10,15,30].filter(v=>q('#f_d'+v)?.checked);}
-async function submitCreateKey(){
-  const name=q('#f_kname').value.trim();
-  const allowed=selectedDurations();
-  if(!allowed.length)return alert('Please select at least one duration');
-  const body={name,daily_limit:Number(q('#f_daily').value||0),concurrency_limit:Number(q('#f_conc').value||0),allowed_durations:allowed};
-  const exp=q('#f_exp').value.trim();if(exp)body.expires_at=Number(exp);
-  try{
-    const r=await api('/api/admin/keys',{method:'POST',body});
-    const k=r.created.key;
-    hide('dlg');
-    showDlg(`<h2>Key Created Successfully</h2>
-      <div class="tiny">Full API key is only displayed once:</div>
-      <div class="keyfull" id="newKey">${esc(k)}</div>
-      <div class="row"><button class="btn" onclick="copyFromNewKey()">Copy</button><button class="btn btn-p" onclick="hide('dlg');loadKeys()">Done</button></div>`);
-  }catch(e){alert(e.message);}
-}
-async function openEditKey(key){
-  const r=await api('/api/admin/keys');const k=r.keys.find(x=>x.key===key);if(!k)return;
-  showDlg(`<h2>Configure API Key</h2>
-    <div class="tiny" style="margin-bottom:8px">${esc(k.name||key)}</div>
-    <label>Daily Task Limit (0 = Unlimited)</label><input id="f_daily" type="number" min="0" value="${k.daily_limit}">
-    <label>Concurrency Limit (0 = Unlimited)</label><input id="f_conc" type="number" min="0" value="${k.concurrency_limit}">
-    <label>Allowed Video Durations</label><div style="padding:8px 0">${durationChecks(k.allowed_durations)}</div>
-    <label>Expiration Timestamp (0 = Permanent)</label><input id="f_exp" type="number" min="0" value="${k.expires_at||0}">
-    <div class="row"><button class="btn" onclick="hide('dlg')">Cancel</button><button class="btn btn-p" onclick="submitEditKey('${key}')">Save</button></div>`);
-}
-async function submitEditKey(key){
-  const allowed=selectedDurations();if(!allowed.length)return alert('Please select at least one duration');
-  try{await api('/api/admin/keys/'+encodeURIComponent(key),{method:'PATCH',body:{daily_limit:Number(q('#f_daily').value||0),concurrency_limit:Number(q('#f_conc').value||0),allowed_durations:allowed,expires_at:Number(q('#f_exp').value||0)}});hide('dlg');refresh();}catch(e){alert(e.message);}
-}
-function copyFromNewKey(){copy(q('#newKey').textContent.trim());}
-async function copy(text){
-  try{await navigator.clipboard.writeText(text);}catch(e){
-    const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();
+  // Update Dola Studio accounts & badge
+  const accSel = q('#dolaStudioAccount');
+  if (accSel && st.per_account) {
+    const curVal = accSel.value;
+    const verified = st.per_account.find(a => a.login_ok === 1)?.name;
+    const selectedVal = curVal || verified || '';
+    accSel.innerHTML = '<option value="">Tự động điều phối (Ưu tiên đã đăng nhập)</option>' +
+      st.per_account.map(a => {
+        const isVerified = a.login_ok === 1;
+        const tag = isVerified ? '✓ Đã login' : 'Chưa login';
+        const isSel = a.name === selectedVal;
+        return `<option value="${esc(a.name)}" ${isSel ? 'selected' : ''}>${esc(a.name)} [${tag}] (Còn ${a.remaining}/${a.limit} quota)</option>`;
+      }).join('');
+    if (selectedVal) {
+      accSel.value = selectedVal;
+    }
+  }
+  const badge = q('#availableAccCountBadge');
+  if (badge) {
+    badge.textContent = `Pool: ${st.available_accounts}/${st.total_accounts} accounts sẵn sàng (${st.total_remaining} quota)`;
   }
 }
 
-function showDlg(html){q('#dlgBox').innerHTML=html;show('dlg');}
+/* ---- DOLA PROMPT STUDIO FUNCTIONS ---- */
+let selectedDolaDuration = 30;
 
-/* Init: auth check */
+function setDolaDuration(dur) {
+  selectedDolaDuration = dur;
+  document.querySelectorAll('#dolaDurationGroup button').forEach(b => {
+    const isSel = Number(b.dataset.dur) === dur;
+    b.className = isSel ? 'btn btn-mini btn-p press' : 'btn btn-mini press';
+    b.style.background = isSel ? 'var(--primary)' : 'transparent';
+    b.style.color = isSel ? '#fff' : 'var(--ink)';
+  });
+}
+
+function setDolaPromptSample(text) {
+  const el = q('#dolaStudioPrompt');
+  if (el) {
+    el.value = text;
+    el.focus();
+    toast('Đã chọn mẫu', 'Prompt đã được điền vào ô nhập', 'info');
+  }
+}
+
+async function submitDolaTask() {
+  const promptEl = q('#dolaStudioPrompt');
+  const prompt = promptEl?.value.trim();
+  if (!prompt) {
+    alert('Vui lòng nhập prompt mô tả video bạn muốn tạo.');
+    promptEl?.focus();
+    return;
+  }
+
+  const btn = q('#btnDolaStudioSubmit');
+  const oldText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Đang gửi...';
+
+  try {
+    const acc = q('#dolaStudioAccount')?.value || null;
+    const model = q('#dolaStudioModel')?.value || 'seedance-2.0';
+    const body = {
+      model: model,
+      prompt: prompt,
+      duration: selectedDolaDuration,
+      ratio: q('#dolaStudioRatio')?.value || '16:9',
+      ...(acc ? { account: acc } : {})
+    };
+    const res = await api('/v1/videos/generations', {
+      method: 'POST',
+      body,
+    });
+
+    toast('Tác Vụ Đã Tạo Thành Công', `Task ID: ${res.id} (Trạng thái: ${res.status}${acc ? ', Account: ' + acc : ''})`, 'success');
+    switchTab('tasks');
+  } catch(e) {
+    alert('Lỗi tạo task: ' + e.message);
+    toast('Lỗi Tạo Video', e.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
+  }
+}
+
+async function submitDolaWithLiveJev() {
+  const promptEl = q('#dolaStudioPrompt');
+  const prompt = promptEl?.value.trim();
+  if (!prompt) {
+    alert('Vui lòng nhập prompt mô tả video trước khi Live Jev.');
+    promptEl?.focus();
+    return;
+  }
+  const acc = q('#dolaStudioAccount')?.value || null;
+  const ratio = q('#dolaStudioRatio')?.value || '16:9';
+  const duration = selectedDolaDuration || 10;
+  const model = q('#dolaStudioModel')?.value || 'seedance-2.0';
+
+  await openLiveJevModal(acc);
+  const pInp = q('#liveJevPromptInput');
+  const mSel = q('#liveJevModeSelect');
+  const aSel = q('#liveJevAccSelect');
+  const modelSel = q('#liveJevModelSelect');
+  const ratioSel = q('#liveJevRatioSelect');
+  const durSel = q('#liveJevDurSelect');
+
+  if (pInp) pInp.value = prompt;
+  if (mSel) mSel.value = 'human_flow';
+  if (acc && aSel) aSel.value = acc;
+  if (modelSel) modelSel.value = model;
+  if (ratioSel) ratioSel.value = ratio;
+  if (durSel) durSel.value = String(duration);
+  await startLiveJev();
+}
+
+function statusBadge(a) {
+  if (a.busy) return '<span class="badge b-blue pulse-running"><span class="blink-dot"></span> Đang tạo video</span>';
+  if (a.rate_limited) return '<span class="badge b-orange"><i class="bi bi-clock"></i> Rate limited: ' + fmtHM(a.rate_limited_until) + '</span>';
+  if (a.quota_blocked) return '<span class="badge b-orange"><i class="bi bi-slash-circle"></i> Quota blocked</span>';
+  if (a.cooling) return '<span class="badge b-orange">Cooldown: ' + fmtHM(a.cooldown_until) + '</span>';
+  if (a.login_ok === 0) return '<span class="badge b-red">Expired Session</span>';
+  if (a.login_ok === 1) return '<span class="badge b-green"><i class="bi bi-check2"></i> Active</span>';
+  return '<span class="badge b-gray">Chưa verify</span>';
+}
+
+function table(heads, rows) {
+  return `<table><thead><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length ? rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${heads.length}" style="text-align:center;padding:30px;color:var(--ink-3)">Không có dữ liệu</td></tr>`}</tbody></table>`;
+}
+
+async function setSched(name, on) {
+  try {
+    await api('/api/admin/accounts/' + name, { method: 'PATCH', body: { scheduling: on } });
+    toast('Cập nhật', `Account ${name}: Dispatch = ${on ? 'BẬT' : 'TẮT'}`, 'info');
+  } catch(e){ alert(e.message); }
+  refresh();
+}
+
+async function setAccIncognito(name, on) {
+  try {
+    await api('/api/admin/accounts/' + name, { method: 'PATCH', body: { incognito: on } });
+    toast('Cập nhật', `Account ${name}: Ẩn danh = ${on ? 'BẬT' : 'TẮT'}`, 'info');
+  } catch(e){ alert(e.message); }
+  refresh();
+}
+
+/* ---- TAB 2: ACCOUNTS ---- */
+async function loadAccounts() {
+  const [a, j] = await Promise.all([api('/api/admin/accounts'), api('/api/admin/jobs')]);
+  const jobs = j.jobs || {};
+  const rows = a.accounts.map(x => {
+    const jb = jobs[x.name];
+    const badge = (jb && jb.kind === 'add' && jb.status === 'running') ? '<span class="badge b-blue pulse-running">Adding</span>'
+      : (jb && jb.kind === 'add' && jb.status === 'failed') ? '<span class="badge b-red">Add Failed</span>'
+      : statusBadge(x);
+    return [
+      `<strong style="font-family:monospace;color:var(--primary-dark)">${esc(x.name)}</strong>`,
+      x.email ? esc(x.email) : '<span style="color:var(--ink-3)">Chưa có email</span>',
+      badge,
+      `<label class="sw"><input type="checkbox" ${x.scheduling ? 'checked' : ''} onchange="setSched('${x.name}', this.checked)"><i></i></label>`,
+      `<label class="sw"><input type="checkbox" ${x.incognito ? 'checked' : ''} onchange="setAccIncognito('${x.name}', this.checked)"><i></i></label>`,
+      `<b style="font-family:monospace">${x.used_today}</b> / ${x.limit}`,
+      fmt(x.last_used_at),
+      fmt(x.created_at),
+      `<button class="btn btn-mini press" style="margin-right:6px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(124,58,237,0.25)" onclick="openLiveJevModal('${x.name}')" title="Xem Jev thao tác trực tiếp"><i class="bi bi-broadcast"></i> Live Jev</button><button class="btn btn-mini press" style="margin-right:6px" onclick="verify('${x.name}', this)"><i class="bi bi-shield-check"></i> Verify</button><button class="btn btn-mini btn-danger press" onclick="delAccount('${x.name}')"><i class="bi bi-trash"></i> Xóa</button>`
+    ];
+  });
+  q('#accountsTable').innerHTML = table(['Account ID', 'Google Email', 'Trạng Thái', 'Dispatch', 'Ẩn Danh', 'Hôm Nay', 'Lần Dùng Cuối', 'Ngày Tạo', 'Thao Tác'], rows);
+}
+
+async function verify(name, btn) {
+  btn.disabled = true;
+  const old = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Checking…';
+  try {
+    const r = await api('/api/admin/accounts/' + name + '/verify', { method: 'POST' });
+    toast(name, 'Session: ' + (r.ok ? 'Active ✓' : 'Expired ✗'), r.ok ? 'success' : 'danger');
+  } catch(e){ toast('Lỗi Verify', e.message, 'danger'); }
+  btn.disabled = false;
+  btn.innerHTML = old;
+  refresh();
+}
+
+async function delAccount(name) {
+  if (!confirm('Xoá account ' + name + '? Thư mục profile tương ứng sẽ bị gỡ bỏ.')) return;
+  try {
+    await api('/api/admin/accounts/' + name, { method: 'DELETE' });
+    toast('Đã xoá', 'Tài khoản ' + name + ' đã được xoá', 'info');
+  } catch(e){ alert(e.message); }
+  refresh();
+}
+
+function openAddAccount() {
+  let def = 'acc2';
+  try { const n = document.querySelectorAll('#accountsTable tbody tr').length; def = 'acc' + (n + 1); } catch(e){}
+  showDlg(`<h2>Thêm Tài Khoản Dola</h2>
+    <label>Tên định danh (Account Name)</label><input id="f_name" value="${def}">
+    <label>Google Email</label><input id="f_email" placeholder="example@gmail.com">
+    <label>Mật khẩu</label><input id="f_pass" type="password">
+    <label>TOTP Secret (Mã 2FA nếu có)</label><input id="f_totp" placeholder="Khóa bảo mật 2FA">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
+      <input type="checkbox" id="f_incognito" style="width:auto;height:auto;margin:0;accent-color:var(--primary)"> Chạy tài khoản này ở chế độ ẩn danh (Incognito)
+    </label>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn press" onclick="hide('dlg')">Hủy</button>
+      <button class="btn btn-p press" onclick="submitAddAccount()"><i class="bi bi-check-lg"></i> Bắt đầu đăng nhập</button>
+    </div>`);
+}
+async function submitAddAccount() {
+  const body = {
+    name: q('#f_name').value.trim(),
+    email: q('#f_email').value.trim(),
+    password: q('#f_pass').value,
+    totp: q('#f_totp').value.trim(),
+    incognito: q('#f_incognito')?.checked || false
+  };
+  if (!body.name || !body.email || !body.password) return alert('Vui lòng điền đủ tên, email và mật khẩu!');
+  try { await api('/api/admin/accounts', { method: 'POST', body }); }
+  catch(e){ return alert(e.message); }
+  hide('dlg');
+  toast('Đang khởi động login', 'Hệ thống đang mở trình duyệt tự động đăng nhập vào Dola...', 'info');
+  refresh();
+}
+
+/* ---- TAB 3: TASK QUEUE ---- */
+async function loadTasks() {
+  const r = await api('/api/admin/tasks?limit=50');
+  const sb = {
+    'queued': '<span class="badge b-gray">Queued</span>',
+    'processing': '<span class="badge b-orange pulse-running"><span class="blink-dot"></span> Rendering</span>',
+    'completed': '<span class="badge b-green"><i class="bi bi-check-circle-fill"></i> Done</span>',
+    'failed': '<span class="badge b-red"><i class="bi bi-x-circle-fill"></i> Failed</span>'
+  };
+  const rows = r.tasks.map(t => [
+    `<span style="font-family:monospace;font-size:11.5px;color:var(--primary-dark)">${t.id.replace('video_', '').slice(0, 10)}</span>`,
+    `<span class="prompt" title="${esc(t.prompt || '')}">${esc(t.prompt || '')}</span>`,
+    t.account ? `<strong style="font-family:monospace">${esc(t.account)}</strong>` : '-',
+    t.api_key_name || '—',
+    `<span class="badge b-blue">${(t.duration || 10)}s</span>`,
+    sb[t.status] || `<span class="badge b-gray">${esc(t.status)}</span>`,
+    fmt(t.created_at),
+    t.video_url
+      ? `<button class="btn btn-mini press" onclick="playVideo('${esc(t.video_url)}')"><i class="bi bi-play-fill"></i> Xem Video</button>`
+      : (t.status === 'failed' ? `<span style="color:var(--danger);font-size:11px" title="${esc(t.error || '')}">⚠ Lỗi: ${esc((t.error || '').slice(0, 24))}</span>` : '—')
+  ]);
+  q('#tasksTable').innerHTML = table(['Task ID', 'Prompt Nội Dung', 'Account', 'Client Key', 'Độ Dài', 'Trạng Thái', 'Thời Gian Tạo', 'Xem Kết Quả'], rows);
+}
+
+function playVideo(url) {
+  const v = q('#videoEl');
+  v.src = url;
+  q('#videoDownloadBtn').href = url;
+  q('#modalVidMeta').textContent = 'Đang đọc metadata…';
+  show('videoModal');
+}
+function closeVideo() {
+  const v = q('#videoEl');
+  v.pause();
+  v.src = '';
+  hide('videoModal');
+}
+function onVideoLoadedMeta(e) {
+  const v = e.target;
+  q('#modalVidMeta').textContent = `${v.videoWidth} × ${v.videoHeight} · ~30fps`;
+}
+
+/* ---- TAB 4: API KEYS ---- */
+async function loadKeys() {
+  const r = await api('/api/admin/keys');
+  const mask = k => 'sk-' + k.slice(3, 9) + '…' + k.slice(-4);
+  const rows = r.keys.map(k => [
+    `<span style="font-family:monospace;color:var(--primary-dark)">${mask(k.key)}</span>`,
+    k.name || '—',
+    (k.allowed_durations || []).map(d => `<span class="badge b-blue">${d}s</span>`).join(' '),
+    (k.daily_limit ? `${k.today_total} / ${k.daily_limit}` : `${k.today_total} / ∞`),
+    (k.concurrency_limit ? `${k.today_active} / ${k.concurrency_limit}` : `${k.today_active} / ∞`),
+    `<label class="sw"><input type="checkbox" ${k.enabled ? 'checked' : ''} onchange="setKey('${k.key}', this.checked)"><i></i></label>`,
+    fmt(k.last_used_at),
+    `<button class="btn btn-mini press" style="margin-right:6px" onclick="openEditKey('${k.key}')"><i class="bi bi-sliders"></i> Cấu hình</button><button class="btn btn-mini btn-danger press" onclick="delKey('${k.key}')"><i class="bi bi-trash"></i></button>`
+  ]);
+  q('#keysTable').innerHTML = table(['Khóa API (Key)', 'Tên Định Danh', 'Độ Dài Hỗ Trợ', 'Tác Vụ Hôm Nay', 'Song Song (Active)', 'Kích Hoạt', 'Lần Dùng Cuối', 'Thao Tác'], rows);
+}
+async function setKey(key, on) {
+  try {
+    await api('/api/admin/keys/' + encodeURIComponent(key), { method: 'PATCH', body: { enabled: on } });
+    toast('API Key', `Đã ${on ? 'BẬT' : 'TẮT'} khóa API`, 'info');
+  } catch(e){ alert(e.message); }
+  refresh();
+}
+async function delKey(key) {
+  if (!confirm('Xóa API Key này? Tất cả các bên gọi ngoài bằng Key này sẽ bị từ chối ngay lập tức.')) return;
+  try {
+    await api('/api/admin/keys/' + encodeURIComponent(key), { method: 'DELETE' });
+    toast('Đã xóa', 'Khóa API đã được thu hồi', 'info');
+  } catch(e){ alert(e.message); }
+  refresh();
+}
+function durationChecks(values) {
+  values = values || [10, 15, 30];
+  return [10, 15, 30].map(v => `<label style="display:inline-flex;align-items:center;gap:4px;margin-right:14px;cursor:pointer"><input type="checkbox" id="f_d${v}" ${values.includes(v) ? 'checked' : ''} style="accent-color:var(--primary)"> ${v}s</label>`).join('');
+}
+function openCreateKey() {
+  showDlg(`<h2>Tạo Mới API Key</h2>
+    <label>Tên định danh (Client A / Bot Telegram...)</label><input id="f_kname" placeholder="Ví dụ: Studio App 01">
+    <label>Giới hạn hàng ngày (Daily Quota - 0 = Không giới hạn)</label><input id="f_daily" type="number" min="0" value="0">
+    <label>Tác vụ song song tối đa (Concurrency - 0 = Không giới hạn)</label><input id="f_conc" type="number" min="0" value="0">
+    <label>Các độ dài video được phép tạo</label><div style="padding:6px 0">${durationChecks()}</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn press" onclick="hide('dlg')">Hủy</button>
+      <button class="btn btn-p press" onclick="submitCreateKey()"><i class="bi bi-key-fill"></i> Tạo Khóa Mới</button>
+    </div>`);
+}
+function selectedDurations() { return [10, 15, 30].filter(v => q('#f_d' + v)?.checked); }
+async function submitCreateKey() {
+  const name = q('#f_kname').value.trim();
+  const allowed = selectedDurations();
+  if (!allowed.length) return alert('Vui lòng chọn ít nhất một độ dài video!');
+  const body = { name, daily_limit: Number(q('#f_daily').value || 0), concurrency_limit: Number(q('#f_conc').value || 0), allowed_durations: allowed };
+  try {
+    const r = await api('/api/admin/keys', { method: 'POST', body });
+    const k = r.created.key;
+    hide('dlg');
+    showDlg(`<h2>Khóa API Đã Tạo Thành Công</h2>
+      <p style="font-size:12px;color:var(--warning)">Lưu ý: Toàn bộ khóa chỉ hiển thị duy nhất 1 lần dưới đây. Hãy sao chép ngay:</p>
+      <div style="background:var(--surface-2);border:1px dashed var(--line-2);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all;color:var(--primary-dark);margin:14px 0" id="newKey">${esc(k)}</div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn press" onclick="copy(q('#newKey').textContent.trim());toast('Đã copy', 'Đã lưu API Key vào clipboard', 'success')"><i class="bi bi-clipboard"></i> Sao Chép</button>
+        <button class="btn btn-p press" onclick="hide('dlg');loadKeys()">Hoàn Tất</button>
+      </div>`);
+  } catch(e){ alert(e.message); }
+}
+
+async function openEditKey(key) {
+  const r = await api('/api/admin/keys');
+  const k = r.keys.find(x => x.key === key);
+  if (!k) return;
+  showDlg(`<h2>Cấu Hình API Key</h2>
+    <div style="font-size:11px;color:var(--ink-3);margin-bottom:8px">${esc(k.name || key)}</div>
+    <label>Giới hạn hàng ngày (0 = Không giới hạn)</label><input id="f_daily" type="number" min="0" value="${k.daily_limit}">
+    <label>Tác vụ song song tối đa (0 = Không giới hạn)</label><input id="f_conc" type="number" min="0" value="${k.concurrency_limit}">
+    <label>Các độ dài được phép</label><div style="padding:6px 0">${durationChecks(k.allowed_durations)}</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn press" onclick="hide('dlg')">Hủy</button>
+      <button class="btn btn-p press" onclick="submitEditKey('${key}')"><i class="bi bi-save"></i> Lưu Thay Đổi</button>
+    </div>`);
+}
+async function submitEditKey(key) {
+  const allowed = selectedDurations();
+  if (!allowed.length) return alert('Vui lòng chọn ít nhất 1 độ dài video!');
+  try {
+    await api('/api/admin/keys/' + encodeURIComponent(key), {
+      method: 'PATCH',
+      body: { daily_limit: Number(q('#f_daily').value || 0), concurrency_limit: Number(q('#f_conc').value || 0), allowed_durations: allowed }
+    });
+    hide('dlg');
+    toast('Đã lưu', 'Cấu hình API Key đã được cập nhật', 'success');
+    refresh();
+  } catch(e){ alert(e.message); }
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch(e){
+    const t = document.createElement('textarea');
+    t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+  }
+}
+
+/* Modal Helpers */
+function showDlg(html) {
+  q('#dlgBox').style.width = '440px';
+  q('#dlgBox').innerHTML = html;
+  show('dlg');
+}
+function showDlgWide(html) {
+  q('#dlgBox').style.width = '780px';
+  q('#dlgBox').innerHTML = html;
+  show('dlg');
+}
+
+/* Chrome Profiles Scan & Inspect Elements Modals (Preserved from original) */
+let scannedProfilesData = [];
+async function openScanProfiles() {
+  showDlgWide(`<h2><i class="bi bi-search text-primary"></i> Quét Chrome Profiles (macOS)</h2>
+    <div style="text-align:center;padding:40px;color:var(--ink-2)"><i class="bi bi-arrow-repeat animate-spin" style="font-size:24px"></i><br>Đang đọc Local State và trích xuất các Google Profile trên Mac...</div>`);
+  try {
+    const r = await api('/api/admin/chrome-profiles');
+    scannedProfilesData = r.profiles || [];
+    renderScanProfilesModal(scannedProfilesData);
+  } catch(e) {
+    showDlgWide(`<h2>Quét Chrome Profiles</h2><div style="color:var(--danger);padding:20px 0">${esc(e.message)}</div><div style="text-align:right"><button class="btn" onclick="hide('dlg')">Đóng</button></div>`);
+  }
+}
+function renderScanProfilesModal(profiles) {
+  const total = profiles.length;
+  const imported = profiles.filter(p => p.is_imported).length;
+  showDlgWide(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0"><i class="bi bi-search text-primary"></i> Quét Chrome Profiles (${total} tìm thấy)</h2>
+      <span style="font-size:12px;color:var(--primary-dark)">${imported} đã nạp vào Dola</span>
+    </div>
+    <div id="scanListContainer" style="max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn press" onclick="hide('dlg')">Đóng</button>
+    </div>
+  `);
+  let html = '<table><thead><tr><th>Profile</th><th>Thư Mục</th><th>Trạng Thái</th><th style="text-align:right">Thao Tác</th></tr></thead><tbody>';
+  profiles.forEach(p => {
+    html += `<tr>
+      <td><strong>${esc(p.name)}</strong>${p.email ? `<div style="font-size:11px;color:var(--ink-2)">${esc(p.email)}</div>` : ''}</td>
+      <td><code style="font-size:11px;color:var(--primary-dark)">${esc(p.directory)}</code></td>
+      <td>${p.is_imported ? `<span class="badge b-green">Đã nạp (${esc(p.imported_name)})</span>` : '<span class="badge b-gray">Chưa nạp</span>'}</td>
+      <td style="text-align:right">${p.is_imported ? '—' : `<button class="btn btn-mini btn-p press" onclick="importSingleProfile('${esc(p.directory)}','${esc(p.suggested_name)}')">Import</button>`}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  q('#scanListContainer').innerHTML = html;
+}
+async function importSingleProfile(directory, suggestedName) {
+  const targetName = prompt('Nhập định danh account trong Dola:', suggestedName);
+  if (!targetName) return;
+  try {
+    const res = await api('/api/admin/chrome-profiles/import', { method: 'POST', body: { directory, name: targetName.trim() } });
+    toast('Đã nạp', 'Nạp thành công profile ' + res.account.name, 'success');
+    openScanProfiles();
+    refresh();
+  } catch(e){ alert(e.message); }
+}
+
+async function openInspectDolaElements() {
+  showDlgWide(`<h2><i class="bi bi-crosshair text-primary"></i> Vị Trí Các Phần Tử Dola.com</h2>
+    <div style="text-align:center;padding:40px;color:var(--ink-2)"><i class="bi bi-arrow-repeat animate-spin" style="font-size:24px"></i><br>Hệ thống đang mở browser, phân tích DOM và trích xuất tọa độ...</div>`);
+  try {
+    const res = await api('/api/admin/dola/elements');
+    const elems = res.data?.elements || [];
+    let tableHtml = '<table><thead><tr><th>#</th><th>Loại</th><th>Phân Loại</th><th>Tọa Độ Vật Lý</th><th>Nhãn</th></tr></thead><tbody>';
+    elems.forEach(el => {
+      const r = el.rect;
+      tableHtml += `<tr>
+        <td><code>[${el.index}]</code></td>
+        <td>${esc(el.role)}</td>
+        <td><span class="badge b-blue">${esc(el.category || 'other')}</span></td>
+        <td><code>(${r.x}, ${r.y}, ${r.width}x${r.height})</code></td>
+        <td>${esc(el.label || '—')}</td>
+      </tr>`;
+    });
+    tableHtml += '</tbody></table>';
+    showDlgWide(`<h2>🎯 Vị Trí Các Phần Tử Dola (${elems.length} elements)</h2>
+      <div style="max-height:360px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;margin:12px 0">${tableHtml}</div>
+      <div style="text-align:right"><button class="btn press" onclick="hide('dlg')">Đóng</button></div>`);
+  } catch(e){
+    showDlgWide(`<h2>Vị Trí Phần Tử</h2><div style="color:var(--danger);padding:20px 0">${esc(e.message)}</div><button class="btn press" onclick="hide('dlg')">Đóng</button>`);
+  }
+}
+
+/* ---- LIVE FLOW (flow.google.com) AUTOMATION & STREAMING MODAL ---- */
+let liveFlowEventSource = null;
+
+async function openLiveFlowModal(targetAcc = null) {
+  q('#dlgBox').style.width = '840px';
+  q('#dlgBox').style.maxWidth = '95vw';
+
+  let accList = [];
+  try {
+    const a = await api('/api/admin/accounts');
+    accList = a.accounts || [];
+  } catch(e) {}
+
+  const verifiedAcc = accList.find(x => x.login_ok === 1)?.name;
+  const defaultAcc = targetAcc || verifiedAcc || (accList.length ? accList[0].name : 'vankhuong240_p185');
+  const accOptions = accList.map(x => {
+    const isVerified = x.login_ok === 1;
+    const tag = isVerified ? '✓ [Google Session Active]' : '⚠️ [Chưa Xác Thực/Offline]';
+    return `<option value="${esc(x.name)}" ${x.name === defaultAcc ? 'selected' : ''}>${esc(x.name)} ${tag} (${x.email || 'No email'})</option>`;
+  }).join('');
+
+  showDlgWide(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;font-size:16px;box-shadow:0 2px 8px rgba(124,58,237,0.3)"><i class="bi bi-broadcast"></i></span>
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:700">Live Flow Visual Automation (Google Flow)</h2>
+          <div style="font-size:12px;color:var(--ink-2)">Trực tiếp theo dõi AI Agent định vị và thao tác trên <b style="color:#A855F7">https://flow.google.com/</b></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <a href="https://flow.google.com/" target="_blank" class="btn btn-mini press" style="background:#2A2A32;color:#fff;border-color:var(--line)" title="Mở trang Google Flow gốc">
+          <i class="bi bi-box-arrow-up-right"></i> flow.google.com
+        </a>
+        <button class="btn btn-mini press" onclick="closeLiveFlowModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+
+    <!-- Controls Row -->
+    <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Tài khoản Chrome Profile</label>
+          <select id="liveFlowAccSelect" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            ${accOptions || '<option value="vankhuong240_p185">vankhuong240_p185 (Profile 185)</option>'}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Chế độ hoạt động</label>
+          <select id="liveFlowModeSelect" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            <option value="image" selected>Tạo Ảnh (Image Mode - Nano Banana 2)</option>
+            <option value="video">Tạo Video (Video Mode)</option>
+            <option value="inspect">Chỉ quét DOM (Trực quan hóa Bounding Boxes)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Model, Ratio, Quantity Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Model</label>
+          <select id="liveFlowModelSelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            <option value="Nano Banana 2" selected>Nano Banana 2 (Mặc định)</option>
+            <option value="Banana Pro">Banana Pro (Cao cấp)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Tỉ lệ (Aspect Ratio)</label>
+          <select id="liveFlowRatioSelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            <option value="16:9" selected>16:9 (Landscape)</option>
+            <option value="9:16">9:16 (Portrait)</option>
+            <option value="1:1">1:1 (Square)</option>
+            <option value="4:3">4:3 (Standard)</option>
+            <option value="3:4">3:4 (Vertical)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Số lượng</label>
+          <select id="liveFlowQtySelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            <option value="x1" selected>x1 (1 ảnh)</option>
+            <option value="x2">x2 (2 ảnh)</option>
+            <option value="x3">x3 (3 ảnh)</option>
+            <option value="x4">x4 (4 ảnh)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Prompt mô tả (What do you want to create?)</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="liveFlowPromptInput" value="A majestic golden eagle soaring above misty mountain peaks at sunset, cinematic 8k" placeholder="What do you want to create?" style="flex:1;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+          <button id="btnStartLiveFlow" class="btn btn-p press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);border-color:transparent;white-space:nowrap;padding:0 16px" onclick="startLiveFlow()">
+            <i class="bi bi-play-fill"></i> Bắt đầu Live Flow
+          </button>
+          <button id="btnStopLiveFlow" class="btn btn-danger press" style="display:none;white-space:nowrap;padding:0 16px" onclick="stopLiveFlow()">
+            <i class="bi bi-stop-fill"></i> Dừng lại
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7-Step Horizontal Stepper for Google Flow -->
+    <div id="liveFlowStepper" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px">
+      <div id="flowstep-1" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">1. Chrome</div>
+      <div id="flowstep-2" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">2. Google Flow</div>
+      <div id="flowstep-3" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">3. Quét DOM</div>
+      <div id="flowstep-4" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">4. Mode & Tỉ Lệ</div>
+      <div id="flowstep-5" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">5. Gõ Prompt</div>
+      <div id="flowstep-6" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">6. Submit Arrow</div>
+      <div id="flowstep-7" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">7. Kết Quả</div>
+    </div>
+
+    <!-- Live Screen Viewport -->
+    <div style="background:#090a0f;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="liveFlowStatusBadge" class="badge b-gray">Sẵn sàng</span>
+          <span id="liveFlowStepPill" style="color:var(--ink-2);font-family:monospace;font-size:11px">Bước 0/7</span>
+        </div>
+        <span id="liveFlowCaption" style="color:var(--ink-2);font-size:11px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Chưa khởi chạy</span>
+      </div>
+
+      <!-- Progress Bar -->
+      <div id="liveFlowProgressBarWrap" style="height:3px;background:rgba(255,255,255,0.06);display:none;overflow:hidden">
+        <div id="liveFlowProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#7C3AED,#34C759);transition:width 0.4s ease"></div>
+      </div>
+
+      <div id="liveFlowScreenWrap" style="min-height:360px;max-height:460px;display:flex;align-items:center;justify-content:center;background:#050608;position:relative">
+        <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Flow Viewport">
+        <div id="liveFlowPlaceholder" style="text-align:center;color:var(--ink-3);padding:60px 20px">
+          <i class="bi bi-broadcast-pin" style="font-size:40px;color:#A855F7;opacity:0.7;display:inline-block;margin-bottom:10px"></i><br>
+          <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Flow</b> để xem quá trình mở Google Flow, dò Composer và tạo ảnh/video theo thời gian thực</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terminal Log -->
+    <div style="background:#0b0c10;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:130px;overflow-y:auto;font-family:monospace;font-size:11px" id="liveFlowTerminal">
+      <div style="color:var(--ink-3)">[Live Flow Terminal] Đang kết nối luồng sự kiện SSE...</div>
+    </div>
+  `);
+
+  initLiveFlowStream();
+}
+
+function updateFlowStepperUi(current, total) {
+  for (let i = 1; i <= 7; i++) {
+    const el = q(`#flowstep-${i}`);
+    if (!el) continue;
+    if (i < current) {
+      el.style.background = 'rgba(52,199,89,0.15)';
+      el.style.borderColor = '#34C759';
+      el.style.color = '#34C759';
+      el.style.fontWeight = '700';
+    } else if (i === current) {
+      el.style.background = 'linear-gradient(135deg,rgba(124,58,237,0.35),rgba(168,85,247,0.35))';
+      el.style.borderColor = '#A855F7';
+      el.style.color = '#fff';
+      el.style.fontWeight = '700';
+      el.style.boxShadow = '0 0 8px rgba(168,85,247,0.4)';
+    } else {
+      el.style.background = 'rgba(255,255,255,0.03)';
+      el.style.borderColor = 'var(--line)';
+      el.style.color = 'var(--ink-3)';
+      el.style.fontWeight = '400';
+      el.style.boxShadow = 'none';
+    }
+  }
+}
+
+function initLiveFlowStream() {
+  if (liveFlowEventSource) {
+    try { liveFlowEventSource.close(); } catch(e) {}
+  }
+
+  liveFlowEventSource = new EventSource('/api/admin/flow/live-stream');
+
+  liveFlowEventSource.addEventListener('status', e => {
+    try {
+      const d = JSON.parse(e.data);
+      updateLiveFlowUiRunning(d.running, d.status_text || d.status);
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('step', e => {
+    try {
+      const d = JSON.parse(e.data);
+      const stepPill = q('#liveFlowStepPill');
+      if (stepPill) stepPill.textContent = `Bước ${d.step}/${d.total}: ${d.title}`;
+      appendLiveFlowLog(`[Bước ${d.step}/${d.total}] ${d.title} - ${d.detail}`, 'info');
+      updateFlowStepperUi(d.step, d.total);
+      if (d.step === 7) {
+        const barWrap = q('#liveFlowProgressBarWrap');
+        if (barWrap) barWrap.style.display = 'block';
+      }
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('progress', e => {
+    try {
+      const d = JSON.parse(e.data);
+      const barWrap = q('#liveFlowProgressBarWrap');
+      const bar = q('#liveFlowProgressBar');
+      const cap = q('#liveFlowCaption');
+      if (barWrap) barWrap.style.display = 'block';
+      if (bar) bar.style.width = `${d.percent}%`;
+      if (cap && d.status) cap.textContent = d.status;
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('frame', e => {
+    try {
+      const d = JSON.parse(e.data);
+      const img = q('#liveFlowScreen');
+      const ph = q('#liveFlowPlaceholder');
+      const caption = q('#liveFlowCaption');
+      if (img && d.image) {
+        img.src = d.image;
+        img.style.display = 'block';
+        if (ph) ph.style.display = 'none';
+      }
+      if (caption && d.caption) caption.textContent = d.caption;
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('log', e => {
+    try {
+      const d = JSON.parse(e.data);
+      appendLiveFlowLog(d.message, d.level || 'info');
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('done', e => {
+    try {
+      const d = JSON.parse(e.data);
+      updateLiveFlowUiRunning(false, d.message);
+      appendLiveFlowLog(d.message, d.success ? 'success' : 'warn');
+      toast('Live Google Flow', d.message, d.success ? 'success' : 'info');
+      const bar = q('#liveFlowProgressBar');
+      if (bar) bar.style.width = d.success ? '100%' : '0%';
+      if (d.success) updateFlowStepperUi(7, 7);
+    } catch(err) {}
+  });
+
+  liveFlowEventSource.addEventListener('error', e => {});
+}
+
+function updateLiveFlowUiRunning(running, statusText = '') {
+  const btnStart = q('#btnStartLiveFlow');
+  const btnStop = q('#btnStopLiveFlow');
+  const badge = q('#liveFlowStatusBadge');
+  const caption = q('#liveFlowCaption');
+
+  if (btnStart) btnStart.style.display = running ? 'none' : 'inline-flex';
+  if (btnStop) btnStop.style.display = running ? 'inline-flex' : 'none';
+  if (badge) {
+    badge.className = running ? 'badge b-purple pulse-running' : 'badge b-gray';
+    badge.innerHTML = running ? '<span class="blink-dot"></span> Đang Live' : 'Đã dừng';
+  }
+  if (caption && statusText) caption.textContent = statusText;
+}
+
+function appendLiveFlowLog(msg, level = 'info') {
+  const term = q('#liveFlowTerminal');
+  if (!term) return;
+  const time = new Date().toLocaleTimeString();
+  const color = level === 'success' ? '#34C759' : level === 'warn' ? '#FF9500' : level === 'error' ? '#FF3B30' : '#8E8E93';
+  const line = document.createElement('div');
+  line.style.marginBottom = '3px';
+  line.innerHTML = `<span style="color:#555">[${time}]</span> <span style="color:${color}">${esc(msg)}</span>`;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+async function startLiveFlow() {
+  const wrap = q('#liveFlowScreenWrap');
+  if (wrap && !q('#liveFlowScreen')) {
+    wrap.innerHTML = `
+      <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Flow Viewport">
+      <div id="liveFlowPlaceholder" style="text-align:center;color:var(--ink-3);padding:60px 20px">
+        <i class="bi bi-broadcast-pin" style="font-size:40px;color:#A855F7;opacity:0.7;display:inline-block;margin-bottom:10px"></i><br>
+        <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Flow</b> để xem quá trình mở Google Flow, dò Composer và tạo ảnh/video theo thời gian thực</span>
+      </div>
+    `;
+  }
+  const barWrap = q('#liveFlowProgressBarWrap');
+  const bar = q('#liveFlowProgressBar');
+  if (barWrap) barWrap.style.display = 'none';
+  if (bar) bar.style.width = '0%';
+  updateFlowStepperUi(1, 7);
+
+  const acc = q('#liveFlowAccSelect')?.value;
+  const mode = q('#liveFlowModeSelect')?.value || 'image';
+  const prompt = q('#liveFlowPromptInput')?.value || '';
+  const model = q('#liveFlowModelSelect')?.value || 'Nano Banana 2';
+  const ratio = q('#liveFlowRatioSelect')?.value || '16:9';
+  const quantity = q('#liveFlowQtySelect')?.value || 'x1';
+
+  if (!acc) {
+    alert('Vui lòng chọn một tài khoản Chrome Profile để chạy Live Flow');
+    return;
+  }
+
+  updateLiveFlowUiRunning(true, 'Đang gửi lệnh bắt đầu...');
+  appendLiveFlowLog(`Khởi chạy phiên Live Google Flow với profile [${acc}], mode: ${mode}, ratio: ${ratio}, model: ${model}...`, 'info');
+
+  try {
+    const res = await api('/api/admin/flow/live-start', {
+      method: 'POST',
+      body: { account: acc, mode, prompt, model, ratio, quantity },
+    });
+    if (!res.ok) {
+      throw new Error(res.error || 'Lỗi khởi chạy');
+    }
+  } catch(e) {
+    updateLiveFlowUiRunning(false, e.message);
+    appendLiveFlowLog('Lỗi khởi chạy: ' + e.message, 'error');
+    toast('Lỗi Live Flow', e.message, 'danger');
+  }
+}
+
+async function stopLiveFlow() {
+  try {
+    await api('/api/admin/flow/live-stop', { method: 'POST' });
+    appendLiveFlowLog('Đã gửi yêu cầu dừng phiên Live Flow', 'warn');
+  } catch(e) {
+    alert(e.message);
+  }
+}
+
+function closeLiveFlowModal() {
+  if (liveFlowEventSource) {
+    try { liveFlowEventSource.close(); } catch(e) {}
+    liveFlowEventSource = null;
+  }
+  hide('dlg');
+}
+
+// Global binds & aliases
+window.openLiveFlowModal = openLiveFlowModal;
+window.startLiveFlow = startLiveFlow;
+window.stopLiveFlow = stopLiveFlow;
+window.closeLiveFlowModal = closeLiveFlowModal;
+
+// Backward compatible aliases
+window.openLiveJevModal = openLiveFlowModal;
+window.startLiveJev = startLiveFlow;
+window.stopLiveJev = stopLiveFlow;
+window.closeLiveJevModal = closeLiveFlowModal;
+window.submitDolaTask = submitDolaTask;
+window.submitDolaWithLiveJev = openLiveFlowModal;
+window.setDolaDuration = setDolaDuration;
+window.setDolaPromptSample = setDolaPromptSample;
+
+/* ---- TAB 5: WORKFLOW STUDIO REAL TASK PIPELINE ---- */
+function selectNode(el) {
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+let canvasPollTimer = null;
+let currentCanvasTaskId = null;
+
+async function syncCanvasWithLatestTask(targetTaskId = null) {
+  try {
+    const r = await api('/api/admin/tasks?limit=20');
+    const tasks = r.tasks || [];
+    let task = null;
+    if (targetTaskId) {
+      task = tasks.find(x => x.id === targetTaskId);
+    }
+    if (!task && tasks.length > 0) {
+      task = tasks[0];
+    }
+
+    if (!task) {
+      q('#node1PromptText').textContent = 'Chưa có tác vụ nào trong hàng đợi';
+      q('#node1Sub').textContent = 'Không có task';
+      q('#node2Account').textContent = 'Auto Pool';
+      q('#node2TaskId').textContent = '—';
+      q('#node2ProgressText').className = 'badge b-gray';
+      q('#node2ProgressText').textContent = 'Chờ lệnh';
+      q('#node2StatusSub').textContent = 'Browser Pool · Sẵn sàng';
+      q('#node2').classList.remove('pulse-running');
+      q('#node2StatusPill').style.background = '#3A3A42';
+      q('#node2StatusPill').innerHTML = '<i class="bi bi-dot"></i>';
+      q('#node3Placeholder').style.display = 'block';
+      q('#node3PlayerWrap').style.display = 'none';
+      q('#node3StatusPill').style.background = '#3A3A42';
+      return;
+    }
+
+    currentCanvasTaskId = task.id;
+
+    // Node 1: Prompt & Config
+    q('#node1PromptText').textContent = task.prompt || 'Không có prompt';
+    q('#node1Sub').textContent = `Task #${task.id.replace('video_', '').slice(0, 8)}`;
+    q('#node1ModelBadge').textContent = task.model || 'seedance-2.0';
+    q('#node1RatioBadge').textContent = task.ratio || '16:9';
+    q('#node1DurBadge').textContent = (task.duration || 10) + 's';
+    q('#node1StatusPill').style.background = '#34C759';
+    q('#node1StatusPill').innerHTML = '<i class="bi bi-check"></i>';
+
+    // Node 2: Dola Video Worker Engine
+    q('#node2Account').textContent = task.account || 'Auto Pool';
+    q('#node2TaskId').textContent = task.id.replace('video_', '').slice(0, 10);
+
+    const node2 = q('#node2');
+    const n2Pill = q('#node2StatusPill');
+    const n2Prog = q('#node2ProgressText');
+    const n2Sub = q('#node2StatusSub');
+
+    if (task.status === 'processing') {
+      node2.classList.add('pulse-running');
+      n2Pill.style.background = '#FF9500';
+      n2Pill.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i>';
+      n2Prog.className = 'badge b-orange';
+      n2Prog.textContent = 'Rendering';
+      n2Sub.textContent = `Worker [${task.account || 'Đang bốc'}] đang thao tác`;
+    } else if (task.status === 'completed') {
+      node2.classList.remove('pulse-running');
+      n2Pill.style.background = '#34C759';
+      n2Pill.innerHTML = '<i class="bi bi-check"></i>';
+      n2Prog.className = 'badge b-green';
+      n2Prog.textContent = 'Done';
+      n2Sub.textContent = `Render thành công bởi ${task.account || 'Worker'}`;
+    } else if (task.status === 'failed') {
+      node2.classList.remove('pulse-running');
+      n2Pill.style.background = '#EB5757';
+      n2Pill.innerHTML = '<i class="bi bi-x"></i>';
+      n2Prog.className = 'badge b-red';
+      n2Prog.textContent = 'Failed';
+      n2Sub.textContent = (task.error || 'Lỗi render').slice(0, 30);
+    } else {
+      node2.classList.remove('pulse-running');
+      n2Pill.style.background = '#3A3A42';
+      n2Pill.innerHTML = '<i class="bi bi-clock"></i>';
+      n2Prog.className = 'badge b-gray';
+      n2Prog.textContent = 'Queued';
+      n2Sub.textContent = 'Đang chờ phân phối tài khoản';
+    }
+
+    // Node 3: MP4 Export & Video Player
+    const n3Pill = q('#node3StatusPill');
+    const n3Sub = q('#node3Sub');
+    const n3Ph = q('#node3Placeholder');
+    const n3Wrap = q('#node3PlayerWrap');
+    const n3Vid = q('#node3Video');
+    const n3Dl = q('#node3DownloadBtn');
+
+    if (task.video_url && task.status === 'completed') {
+      n3Ph.style.display = 'none';
+      n3Wrap.style.display = 'block';
+      if (n3Vid.src !== task.video_url) {
+        n3Vid.src = task.video_url;
+      }
+      n3Dl.href = task.video_url;
+      n3Pill.style.background = '#34C759';
+      n3Pill.innerHTML = '<i class="bi bi-check"></i>';
+      n3Sub.textContent = 'MP4 đã sẵn sàng xem & tải';
+    } else if (task.status === 'processing') {
+      n3Wrap.style.display = 'none';
+      n3Ph.style.display = 'block';
+      n3Ph.innerHTML = '<i class="bi bi-arrow-repeat animate-spin" style="font-size:24px;color:var(--warning);display:block;margin-bottom:6px"></i><span>Đang tổng hợp khung hình MP4...</span>';
+      n3Pill.style.background = '#FF9500';
+      n3Pill.innerHTML = '<i class="bi bi-dot"></i>';
+      n3Sub.textContent = 'Đang xử lý';
+    } else if (task.status === 'failed') {
+      n3Wrap.style.display = 'none';
+      n3Ph.style.display = 'block';
+      n3Ph.innerHTML = '<i class="bi bi-exclamation-triangle" style="font-size:24px;color:var(--danger);display:block;margin-bottom:6px"></i><span>Không thể xuất video</span>';
+      n3Pill.style.background = '#EB5757';
+      n3Pill.innerHTML = '<i class="bi bi-x"></i>';
+      n3Sub.textContent = 'Lỗi xuất file';
+    } else {
+      n3Wrap.style.display = 'none';
+      n3Ph.style.display = 'block';
+      n3Ph.innerHTML = '<i class="bi bi-film" style="font-size:26px;opacity:0.6;display:block;margin-bottom:6px"></i><span>Chưa có video render</span>';
+      n3Pill.style.background = '#3A3A42';
+      n3Pill.innerHTML = '<i class="bi bi-dot"></i>';
+      n3Sub.textContent = 'Chờ xuất bản';
+    }
+  } catch(e) {
+    console.error('Lỗi đồng bộ canvas:', e);
+  }
+}
+
+async function runRealWorkflow() {
+  const promptInput = q('#dolaStudioPrompt')?.value.trim();
+  const testPrompt = promptInput || 'A cinematic 4k drone shot of misty mountain peaks at golden hour, hyper-realistic, dramatic lighting';
+  const acc = q('#dolaStudioAccount')?.value || null;
+  const model = q('#dolaStudioModel')?.value || 'seedance-2.0';
+  const duration = selectedDolaDuration || 10;
+  const ratio = q('#dolaStudioRatio')?.value || '16:9';
+
+  const btn = q('#btnRunRealWorkflow');
+  const oldText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Đang khởi tạo...';
+
+  try {
+    const res = await api('/v1/videos/generations', {
+      method: 'POST',
+      body: {
+        model,
+        prompt: testPrompt,
+        duration,
+        ratio,
+        ...(acc ? { account: acc } : {})
+      }
+    });
+
+    toast('Workflow Bắt Đầu', `Đã tạo tác vụ thật [${res.id}]. Đang theo dõi tiến trình pipeline...`, 'success');
+    await syncCanvasWithLatestTask(res.id);
+
+    if (canvasPollTimer) clearInterval(canvasPollTimer);
+    canvasPollTimer = setInterval(async () => {
+      try {
+        const t = await api('/v1/videos/' + res.id);
+        await syncCanvasWithLatestTask(res.id);
+
+        if (t.status === 'completed') {
+          clearInterval(canvasPollTimer);
+          canvasPollTimer = null;
+          btn.disabled = false;
+          btn.innerHTML = oldText;
+          toast('Workflow Hoàn Tất!', 'Video thật đã render xong và phát trực tiếp trên Node 3!', 'success');
+          const vid = q('#node3Video');
+          if (vid) { try { vid.play(); } catch(err){} }
+          refresh();
+        } else if (t.status === 'failed') {
+          clearInterval(canvasPollTimer);
+          canvasPollTimer = null;
+          btn.disabled = false;
+          btn.innerHTML = oldText;
+          toast('Workflow Thất Bại', t.error || 'Lỗi xử lý video', 'danger');
+          refresh();
+        }
+      } catch(err) {
+        // lỗi tạm thời
+      }
+    }, 3000);
+  } catch(e) {
+    alert('Lỗi tạo task: ' + e.message);
+    toast('Lỗi Workflow', e.message, 'danger');
+    btn.disabled = false;
+    btn.innerHTML = oldText;
+  }
+}
+
+function openFullscreenCanvasVideo() {
+  const vid = q('#node3Video');
+  if (vid && vid.src) {
+    playVideo(vid.src);
+  }
+}
+
+window.runRealWorkflow = runRealWorkflow;
+window.syncCanvasWithLatestTask = syncCanvasWithLatestTask;
+window.openFullscreenCanvasVideo = openFullscreenCanvasVideo;
+
+/* Boot & Polling */
 (async function boot(){
-  try{ await api('/api/admin/accounts'); hide('loginMask'); refresh(); }
-  catch(e){ /* 401 handled */ }
+  try {
+    await api('/api/admin/accounts');
+    hide('loginMask');
+    refresh();
+  } catch(e){ /* 401 handled */ }
 })();
-timer=setInterval(()=>{if(autoRefresh)refresh();},10000);
+timer = setInterval(() => { if (autoRefresh) refresh(); }, 10000);
 </script>
 </body>
 </html>

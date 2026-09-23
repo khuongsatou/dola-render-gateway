@@ -15,6 +15,7 @@ from gap import find_gap_x
 import config
 from browser import cookie_value, launch_account_context
 from dola_client import CREDIT_FAIL_PATTERN, CreditError
+from dola_element_locator import DolaElementLocator
 from video_worker import POLL_JS, RiskControlError, _download, extract_unwatermarked_url
 
 # Daily limit pattern matching response text
@@ -151,10 +152,10 @@ async def attach_reference_images(page, image_paths: list[str]) -> None:
                                 for status, url in events)
             tos_count = sum("/upload/v1/" in url and 200 <= status < 300
                             for status, url in events)
-            # Wait for thumbnails and TOS completion before sending
+            # Wait for TOS completion and UI settle
             thumb_count = await page.locator('img[alt]').count()
-            if prepare_count >= expected and tos_count >= expected and thumb_count >= expected:
-                await page.wait_for_timeout(800)
+            if (prepare_count >= expected and tos_count >= expected) or (tos_count >= expected and thumb_count >= expected):
+                await page.wait_for_timeout(1200)
                 print(f"[upload] Reference images uploaded: {expected} image(s)", flush=True)
                 return
             await page.wait_for_timeout(250)
@@ -241,7 +242,8 @@ async def solve_slider(page, frame, attempt: int) -> bool:
 
 
 _BALANCE_PATTERNS = (
-    re.compile(r"(?:本日は|今日(?:还剩|剩余)?|今天).*?(\d+)\s*(?:ポイント|积分|points?)", re.I),
+    re.compile(r"(?:本日は|今日(?:还剩|剩余)?|今天).*?(\d+)\s*(?:ポイント|积分|points?|クレジット)", re.I),
+    re.compile(r"本日は残り\s*(\d+)", re.I),
     re.compile(r"(?:remaining|left)\s*[:：]?\s*(\d+)\s*points?", re.I),
     re.compile(r"(?:还剩|剩余|还有)\s*(\d+)\s*(?:积分|点)", re.I),
 )
@@ -323,7 +325,7 @@ async def resume_video(account: str, conversation_id: str, timeout: int,
                        on_poll=None, on_balance=None) -> dict:
     """Recovers accepted session after server restart without re-sending prompt."""
     async with async_playwright() as p:
-        context = await launch_account_context(p, account, headless=False, use_extension=True)
+        context = await launch_account_context(p, account, headless=config.HEADLESS, use_extension=False)
         try:
             page = context.pages[0] if context.pages else await context.new_page()
             await page.goto(f"https://www.dola.com/chat/{conversation_id}",
@@ -348,81 +350,136 @@ async def generate_video(account: str, prompt: str, ratio: str = None,
         model_key = "seedance_v2.0"
     else:
         raise ValueError(f"Unsupported model: {model} (supported: seedance-2.0 / seedance-2.5)")
-    if duration is not None and duration not in (10, 15, 30):
-        raise ValueError("Dola supports durations of 10s, 15s, and 30s via extension")
+    if duration is not None and duration not in (5, 10, 15, 30):
+        raise ValueError("Dola supports durations of 5s, 10s, 15s, and 30s via extension")
     if duration == 30 and not use_extension:
         raise ValueError("30s generation requires Dola30 extension enabled")
-    # 30s videos require extended generation timeout
+    # 30s videos require extended generation timeout and extension
     if duration == 30:
         timeout = max(timeout, 1800)
+    else:
+        use_extension = False
     if reference_image_paths:
         timeout = max(timeout, config.REFERENCE_VIDEO_TIMEOUT)
     async with async_playwright() as p:
+        run_headless = config.HEADLESS if duration != 30 else False
         context = await launch_account_context(
-            p, account, headless=False if use_extension else None,
+            p, account, headless=run_headless,
             use_extension=use_extension)
         try:
             page = context.pages[0] if context.pages else await context.new_page()
             await page.goto("https://www.dola.com/chat", timeout=60000, wait_until="domcontentloaded")
-            await page.wait_for_timeout(5000)
             cookies = await context.cookies("https://www.dola.com")
             ms_token, fp = cookie_value(cookies, "msToken"), cookie_value(cookies, "s_v_web_id")
-            await _preflight_balance(page, ms_token, fp, config.VIDEO_REQUIRED_POINTS)
+            required_pts = 1 if duration == 5 else config.VIDEO_REQUIRED_POINTS
+            await _preflight_balance(page, ms_token, fp, required_pts)
 
-            # ---- UI Submission ----
-            await page.click(VIDEO_BTN)
+            # Start fresh chat session
+            new_chat_btn = page.get_by_text("新しいチャット", exact=False).first
+            if await new_chat_btn.count() and await new_chat_btn.is_visible():
+                await new_chat_btn.click()
+                await page.wait_for_timeout(1500)
+
+            # ---- UI Submission using DolaElementLocator ----
+            vid_btn = page.get_by_text("動画を作成", exact=True).first
+            if await vid_btn.count() and await vid_btn.is_visible():
+                await vid_btn.click()
+            else:
+                video_btn = await DolaElementLocator.find_video_button(page)
+                if video_btn:
+                    await DolaElementLocator.click_element(page, video_btn)
+                else:
+                    await page.click(VIDEO_BTN)
             await page.wait_for_timeout(1500)
+
+            # Upload reference images first if present
             if reference_image_paths:
                 await attach_reference_images(page, reference_image_paths)
+                await page.wait_for_timeout(1000)
+
             # Select model in UI
             try:
-                current_model = None
-                for label in ("モデル 2.0高速", "モデル 2.5"):
-                    loc = page.get_by_text(label, exact=True).first
-                    if await loc.count() and await loc.is_visible():
-                        current_model = loc
-                        break
-                if current_model is None:
-                    current_model = page.get_by_text(re.compile(r"^モデル "), exact=False).first
-                await current_model.click(timeout=5000)
-                await page.wait_for_timeout(500)
-                options = (("Dreamina Seedance 2.5",)
-                           if model_key == "seedance_v2.5"
-                           else ("Dreamina Seedance 2.0高速", "Dreamina Seedance 2.0", "Seedance2.0Fast"))
-                selected = False
-                for option_text in options:
-                    loc = page.get_by_text(option_text, exact=False).first
-                    if await loc.count() and await loc.is_visible():
-                        await loc.click(timeout=5000)
-                        selected = True
-                        break
-                if not selected:
-                    raise RuntimeError("Model option not found")
-                await page.wait_for_timeout(500)
+                model_btn = page.locator("button, div").filter(has_text=re.compile(r"^モデル\s*2\.")).first
+                if not (await model_btn.count() and await model_btn.is_visible()):
+                    model_btn = page.get_by_text(re.compile(r"^モデル\s*"), exact=False).first
+                if await model_btn.count() and await model_btn.is_visible():
+                    await model_btn.click(timeout=3000)
+                    await page.wait_for_timeout(500)
+                    options = (("Dreamina Seedance 2.5", "Seedance 2.5")
+                               if model_key == "seedance_v2.5"
+                               else ("Dreamina Seedance 2.0高速", "Dreamina Seedance 2.0", "Seedance2.0Fast"))
+                    for option_text in options:
+                        loc = page.get_by_text(option_text, exact=False).first
+                        if await loc.count() and await loc.is_visible():
+                            await loc.click(timeout=3000)
+                            break
+                    await page.wait_for_timeout(500)
             except Exception as e:
-                raise RuntimeError(f"Failed to set model ({model_key}): {str(e)[:120]}") from e
+                print(f"  (Failed to set model, continuing with default: {str(e)[:80]})", flush=True)
+
             if ratio:
                 try:
-                    await page.click("text=比率", timeout=3000)
-                    await page.wait_for_timeout(500)
-                    await page.click(f"text={ratio}", timeout=3000)
+                    ratio_btn = page.locator("button, div").filter(has_text=re.compile(r"^比率")).first
+                    if await ratio_btn.count() and await ratio_btn.is_visible():
+                        await ratio_btn.click(timeout=3000)
+                        await page.wait_for_timeout(500)
+                        option = page.get_by_text(ratio, exact=True).first
+                        if await option.count() and await option.is_visible():
+                            await option.click(timeout=3000)
+                        await page.wait_for_timeout(500)
                 except Exception as e:
                     print(f"  (Failed to set ratio, using default: {str(e)[:80]})", flush=True)
+
             if duration:
                 try:
-                    await page.click(f"text={duration}s", timeout=3000)
-                except Exception:
-                    try:  # Open duration dropdown
-                        await page.get_by_text(re.compile(r"^\d+s$")).first.click(timeout=3000)
+                    dur_btn = page.locator("button, div").filter(has_text=re.compile(r"^\d+s$")).first
+                    if await dur_btn.count() and await dur_btn.is_visible():
+                        await dur_btn.click(timeout=3000)
                         await page.wait_for_timeout(500)
-                        await page.click(f"text={duration}s", timeout=3000)
-                    except Exception as e:
-                        print(f"  (Failed to set duration, using default: {str(e)[:80]})", flush=True)
-            box = await page.query_selector("textarea") or await page.query_selector('[contenteditable="true"]')
-            await box.click()
-            await page.keyboard.type(prompt, delay=100)
+                        option = page.get_by_text(f"{duration}s", exact=True).first
+                        if await option.count() and await option.is_visible():
+                            await option.click(timeout=3000)
+                        await page.wait_for_timeout(500)
+                except Exception as e:
+                    print(f"  (Failed to set duration, using default: {str(e)[:80]})", flush=True)
+
+            # Locate prompt input
+            box = page.locator('.tiptap, [contenteditable="true"]').first
+            if await box.count():
+                await box.click()
+            else:
+                prompt_box = await DolaElementLocator.find_prompt_input(page)
+                if prompt_box:
+                    await DolaElementLocator.click_element(page, prompt_box)
+                else:
+                    textarea = await page.query_selector("textarea")
+                    if textarea:
+                        await textarea.click()
+            await page.wait_for_timeout(300)
+            await page.keyboard.insert_text(prompt)
             await page.wait_for_timeout(600)
-            await page.keyboard.press("Enter")
+
+            # Remove any overlay panel that could intercept clicks
+            try:
+                await page.evaluate("document.getElementById('watermark-free-media-panel')?.remove()")
+            except Exception:
+                pass
+
+            # Record initial numeric conversation id if URL already has one
+            initial_conv = page.url.rstrip("/").split("/")[-1]
+            initial_conv_id = initial_conv if initial_conv.isdigit() else ""
+
+            # Click send button (#flow-end-msg-send) or press Enter
+            send_btn = page.locator('#flow-end-msg-send')
+            for _ in range(10):
+                if await send_btn.count() and not (await send_btn.is_disabled()):
+                    break
+                await page.wait_for_timeout(500)
+
+            if await send_btn.count() and not (await send_btn.is_disabled()):
+                await send_btn.click()
+            else:
+                await page.keyboard.press("Enter")
             print(f"[{account}] UI submitted prompt: {prompt[:40]}", flush=True)
 
             # ---- Captcha Solver (up to 3 attempts) ----
@@ -453,9 +510,13 @@ async def generate_video(account: str, prompt: str, ratio: str = None,
             for _ in range(30):
                 await page.wait_for_timeout(1000)
                 tail = page.url.rstrip("/").split("/")[-1]
-                if tail.isdigit():
+                if tail.isdigit() and tail != initial_conv_id:
                     conv_id = tail
                     break
+            if not conv_id:
+                tail = page.url.rstrip("/").split("/")[-1]
+                if tail.isdigit():
+                    conv_id = tail
             if not conv_id:
                 await page.screenshot(path="no_conv.png")
                 raise TimeoutError("conversation_id not acquired within 30s")

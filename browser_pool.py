@@ -325,77 +325,96 @@ class BrowserPool:
     async def generate_video(self, prompt: str, ratio: str = None, duration: int = None,
                              model: str = "seedance_v2.0", on_conversation_id=None,
                              on_poll=None, on_balance=None,
-                             reference_image_paths: list[str] | None = None) -> dict:
-        """Picks an idle schedulable account; automatically rotates on quota/risk limits."""
+                             reference_image_paths: list[str] | None = None,
+                             preferred_account: str | None = None,
+                             max_queue_wait_sec: int = 3600) -> dict:
+        """Picks an idle schedulable account; waits in queue if all accounts are busy; rotates on limits."""
         async with self.semaphore:
+            queue_start = time.time()
             last_err = None
-            for a in self.list_accounts():
-                if not self._schedulable(a):
-                    continue
-                account = a["name"]
-                lock = self._locks.setdefault(account, asyncio.Lock())
-                # Skip busy accounts to prevent concurrent collisions on same profile.
-                if lock.locked():
-                    continue
-                async with lock:
-                    if not self._schedulable(next(x for x in self.list_accounts() if x['name'] == account)):
-                        continue  # State changed while waiting
-                    try:
-                        def on_balance(balance, source=""):
-                            self._set_credit_balance(account, balance, source)
 
-                        result = await generate_video(
-                            account, prompt, ratio, duration, model=model,
-                            on_conversation_id=on_conversation_id, on_poll=on_poll,
-                            on_balance=on_balance, reference_image_paths=reference_image_paths)
-                        self._claim(account)
-                        self._conn.execute(
-                            "UPDATE accounts_meta SET last_used_at=? WHERE name=?",
-                            (time.time(), account))
-                        self._conn.commit()
-                        return result
-                    except CreditInsufficientError as e:
-                        print(f"[pool] {account} insufficient points before generation, skipping: {e}", flush=True)
-                        self._mark_quota_blocked(account, str(e))
-                        last_err = e
+            while time.time() - queue_start < max_queue_wait_sec:
+                self._clear_expired_rate_limits()
+
+                schedulable_accounts = [a for a in self.list_accounts() if self._schedulable(a)]
+                if preferred_account:
+                    schedulable_accounts.sort(key=lambda a: 0 if a["name"] == preferred_account else 1)
+                if not schedulable_accounts:
+                    if self.all_accounts_quota_blocked:
+                        raise AllAccountsQuotaBlockedError(
+                            f"429: All schedulable accounts have insufficient points: {last_err or 'No points'}"
+                        )
+                    if self.all_accounts_limited:
+                        raise AllAccountsLimitedError(
+                            f"429: All schedulable accounts have reached Dola daily limit: {last_err or 'Daily limit'}"
+                        )
+                    raise RuntimeError(f"No schedulable accounts configured in pool: {last_err or 'Disabled or missing'}")
+
+                found_available = False
+                for a in schedulable_accounts:
+                    account = a["name"]
+                    lock = self._locks.setdefault(account, asyncio.Lock())
+                    # Skip busy accounts to prevent concurrent collisions on same profile.
+                    if lock.locked():
                         continue
-                    except AccountLimitedError as e:
-                        print(f"[pool] {account} reached daily limit, rotating: {e}", flush=True)
-                        self._mark_daily_limit(account, str(e))
-                        last_err = e
-                        continue
-                    except CreditError as e:
-                        print(f"[pool] {account} out of quota, rotating: {e}", flush=True)
-                        self._claim(account)
-                        last_err = e
-                        continue
-                    except RiskControlError as e:
-                        print(f"[pool] {account} risk control triggered (30m cooldown), rotating: {e}", flush=True)
-                        self._conn.execute(
-                            "UPDATE accounts_meta SET cooldown_until=? WHERE name=?",
-                            (time.time() + COOLDOWN_SEC, account))
-                        self._conn.commit()
-                        last_err = e
-                        continue
-                    except TimeoutError as e:
-                        # Once conversation_id is assigned, task continues on Dola side;
-                        # do not re-submit to prevent duplicate credit consumption.
-                        self._claim(account)
-                        self._conn.execute(
-                            "UPDATE accounts_meta SET last_used_at=? WHERE name=?",
-                            (time.time(), account))
-                        self._conn.commit()
-                        raise
-                    except FileNotFoundError as e:
-                        print(f"[pool] {account} profile missing, skipping: {e}", flush=True)
-                        last_err = e
-                        continue
-            if self.all_accounts_quota_blocked:
-                raise AllAccountsQuotaBlockedError(
-                    f"429: All schedulable accounts have insufficient points: {last_err or 'No accounts'}"
-                )
-            if self.all_accounts_limited:
-                raise AllAccountsLimitedError(
-                    f"429: All schedulable accounts have reached Dola daily limit: {last_err or 'No accounts'}"
-                )
-            raise RuntimeError(f"No available accounts in pool: {last_err or 'No accounts'}")
+
+                    found_available = True
+                    async with lock:
+                        # Re-verify schedulability inside the lock
+                        curr_a = next((x for x in self.list_accounts() if x['name'] == account), None)
+                        if not curr_a or not self._schedulable(curr_a):
+                            continue
+
+                        try:
+                            def on_balance(balance, source=""):
+                                self._set_credit_balance(account, balance, source)
+
+                            result = await generate_video(
+                                account, prompt, ratio, duration, model=model,
+                                on_conversation_id=on_conversation_id, on_poll=on_poll,
+                                on_balance=on_balance, reference_image_paths=reference_image_paths)
+                            self._claim(account)
+                            self._conn.execute(
+                                "UPDATE accounts_meta SET last_used_at=? WHERE name=?",
+                                (time.time(), account))
+                            self._conn.commit()
+                            return result
+                        except CreditInsufficientError as e:
+                            print(f"[pool] {account} insufficient points before generation, skipping: {e}", flush=True)
+                            self._mark_quota_blocked(account, str(e))
+                            last_err = e
+                            continue
+                        except AccountLimitedError as e:
+                            print(f"[pool] {account} reached daily limit, rotating: {e}", flush=True)
+                            self._mark_daily_limit(account, str(e))
+                            last_err = e
+                            continue
+                        except CreditError as e:
+                            print(f"[pool] {account} out of quota, rotating: {e}", flush=True)
+                            self._claim(account)
+                            last_err = e
+                            continue
+                        except RiskControlError as e:
+                            print(f"[pool] {account} risk control triggered (30m cooldown), rotating: {e}", flush=True)
+                            self._conn.execute(
+                                "UPDATE accounts_meta SET cooldown_until=? WHERE name=?",
+                                (time.time() + COOLDOWN_SEC, account))
+                            self._conn.commit()
+                            last_err = e
+                            continue
+                        except TimeoutError as e:
+                            self._claim(account)
+                            self._conn.execute(
+                                "UPDATE accounts_meta SET last_used_at=? WHERE name=?",
+                                (time.time(), account))
+                            self._conn.commit()
+                            raise
+                        except FileNotFoundError as e:
+                            print(f"[pool] {account} profile missing, skipping: {e}", flush=True)
+                            last_err = e
+                            continue
+
+                # If all schedulable accounts were busy, wait 3 seconds in queue before re-checking
+                await asyncio.sleep(3)
+
+            raise TimeoutError(f"Task queued too long without an available account (> {max_queue_wait_sec}s): {last_err or 'Queue timeout'}")

@@ -18,13 +18,18 @@ from collections import defaultdict
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+from jev_live_runner import jev_live_session
+from flow_live_runner import flow_live_session
+from flow_element_locator import FlowElementLocator
 
 import config
 from add_account import add_account_flow
 from browser_pool import AllAccountsLimitedError, AllAccountsQuotaBlockedError, BrowserPool
+import chrome_profile_scanner
 from media import download_reference_images, validate_reference_urls
 from store import PendingTaskLimitExceeded, TaskQuotaExceeded, TaskStore
 
@@ -107,6 +112,16 @@ def _env_client(key: str) -> dict:
     }
 
 
+def _admin_client() -> dict:
+    return {
+        "api_key_hash": None,
+        "api_key_name": "Admin Dashboard",
+        "daily_limit": 0,
+        "concurrency_limit": 0,
+        "allowed_durations": list(SUPPORTED_DURATIONS),
+    }
+
+
 def _auth(authorization):
     """Returns client policy for caller; empty key enables dev mode."""
     if not config.API_KEYS and not store.has_enabled_keys():
@@ -161,6 +176,7 @@ class VideoGenRequest(BaseModel):
     duration: int | None = Field(None, ge=10, le=30)
     # Accepts durations: 10, 15, 30 seconds.
     reference_images: list[str] = Field(default_factory=list)
+    account: str | None = None
 
 
 class TaskResponse(BaseModel):
@@ -178,7 +194,7 @@ def _resolve_ratio(size, ratio):
     return ratio
 
 
-async def _run_task(task_id, model, prompt, ratio, duration, reference_images, client):
+async def _run_task(task_id, model, prompt, ratio, duration, reference_images, client, preferred_account: str | None = None):
     api_key_hash = client.get("api_key_hash")
     acquired = False
     reference_root = None
@@ -200,7 +216,8 @@ async def _run_task(task_id, model, prompt, ratio, duration, reference_images, c
         result = await pool.generate_video(
             prompt, ratio, duration, model,
             on_conversation_id=on_conversation_id, on_poll=on_poll,
-            reference_image_paths=reference_paths)
+            reference_image_paths=reference_paths,
+            preferred_account=preferred_account)
         public_url = f"{config.PUBLIC_BASE}/videos/{Path(result['local_path']).name}"
         store.update(task_id, status="completed", video_url=public_url,
                      account=result.get("account"), last_poll_at=time.time(),
@@ -286,8 +303,16 @@ async def resume_incomplete_tasks():
 
 
 @app.post("/v1/videos/generations", response_model=TaskResponse)
-async def create_video(req: VideoGenRequest, authorization: str | None = Header(default=None)):
-    client = _auth(authorization)
+async def create_video(
+    req: VideoGenRequest,
+    authorization: str | None = Header(default=None),
+    x_admin_key: str | None = Header(default=None),
+):
+    if x_admin_key:
+        _admin_auth(x_admin_key)
+        client = _admin_client()
+    else:
+        client = _auth(authorization)
     duration = req.duration or 10
     if duration not in SUPPORTED_DURATIONS:
         raise HTTPException(422, "Currently supports durations of 10s, 15s, and 30s")
@@ -331,20 +356,33 @@ async def create_video(req: VideoGenRequest, authorization: str | None = Header(
     except PendingTaskLimitExceeded as exc:
         raise HTTPException(429, str(exc)) from exc
     asyncio.create_task(_run_task(
-        task_id, req.model, req.prompt, ratio, duration, reference_images, client
+        task_id, req.model, req.prompt, ratio, duration, reference_images, client,
+        preferred_account=req.account,
     ))
     return TaskResponse(id=task_id, status="queued", model=req.model, prompt=req.prompt)
 
 
 @app.get("/v1/videos/{task_id}", response_model=TaskResponse)
-async def get_video(task_id: str, authorization: str | None = Header(default=None)):
-    client = _auth(authorization)
-    row = store.get_for_client(task_id, client["api_key_hash"])
+async def get_video(
+    task_id: str,
+    authorization: str | None = Header(default=None),
+    x_admin_key: str | None = Header(default=None),
+):
+    if x_admin_key:
+        _admin_auth(x_admin_key)
+        row = store.get(task_id)
+    else:
+        client = _auth(authorization)
+        row = store.get_for_client(task_id, client["api_key_hash"])
     if not row:
         raise HTTPException(404, "task not found")
     return TaskResponse(
-        id=row["id"], status=row["status"], model=row["model"],
-        prompt=row["prompt"], video_url=row["video_url"], error=row["error"],
+        id=row["id"],
+        status=row["status"],
+        model=row["model"],
+        prompt=row["prompt"],
+        video_url=row["video_url"],
+        error=row["error"],
     )
 
 
@@ -379,6 +417,16 @@ class AccountAdd(BaseModel):
     password: str
     totp: str
     incognito: bool | None = None
+
+
+class ChromeProfileImport(BaseModel):
+    directory: str
+    name: str | None = None
+
+
+class ChromeProfileBulkImport(BaseModel):
+    directories: list[str]
+    prefix: str = "p_"
 
 
 class SettingsPatch(BaseModel):
@@ -504,6 +552,266 @@ async def admin_account_add(body: AccountAdd, x_admin_key: str | None = Header(d
         raise HTTPException(409, "add job running")
     asyncio.create_task(_run_add_job(body.name, body.email, body.password, body.totp, incognito=body.incognito))
     return {"ok": True, "job": "running"}
+
+
+@app.get("/api/admin/chrome-profiles")
+async def admin_chrome_profiles(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    profiles = chrome_profile_scanner.scan_chrome_profiles(
+        accounts_dir=pool.accounts_dir,
+        db_path=config.DB_PATH.replace("tasks.db", "pool_usage.db") if "tasks.db" in config.DB_PATH else "pool_usage.db",
+    )
+    return {
+        "ok": True,
+        "total": len(profiles),
+        "imported": sum(1 for p in profiles if p["is_imported"]),
+        "profiles": profiles,
+    }
+
+
+@app.post("/api/admin/chrome-profiles/import")
+async def admin_chrome_profile_import(body: ChromeProfileImport, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    try:
+        res = chrome_profile_scanner.import_chrome_profile(
+            directory=body.directory,
+            target_name=body.name,
+            accounts_dir=pool.accounts_dir,
+            db_path="pool_usage.db",
+        )
+        # Ensure pool recognizes the newly imported account
+        pool._ensure_meta(res["name"])
+        return {"ok": True, "account": res}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/admin/chrome-profiles/bulk-import")
+async def admin_chrome_profiles_bulk_import(body: ChromeProfileBulkImport, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    try:
+        summary = chrome_profile_scanner.bulk_import_chrome_profiles(
+            directories=body.directories,
+            prefix=body.prefix or "p_",
+            accounts_dir=pool.accounts_dir,
+            db_path="pool_usage.db",
+        )
+        for r in summary.get("results", []):
+            if r.get("name"):
+                pool._ensure_meta(r["name"])
+        return summary
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/admin/dola/elements")
+async def admin_dola_elements(account: str | None = None, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    acc = account or (pool.accounts[0] if pool.accounts else None)
+    if not acc:
+        raise HTTPException(400, "no accounts available in pool")
+    from patchright.async_api import async_playwright
+    from browser import launch_account_context
+    from dola_element_locator import DolaElementLocator
+    async with async_playwright() as p:
+        try:
+            context = await launch_account_context(p, acc, headless=True)
+            try:
+                page = context.pages[0] if context.pages else await context.new_page()
+                await page.goto("https://www.dola.com/chat", timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(4000)
+                snapshot = await DolaElementLocator.snapshot(page)
+                return {"ok": True, "account": acc, "data": snapshot}
+            finally:
+                await context.close()
+        except Exception as e:
+            raise HTTPException(500, f"Element inspection failed: {str(e)[:200]}")
+
+
+class JevLiveStartRequest(BaseModel):
+    account: str | None = None
+    prompt: str | None = None
+    mode: str | None = "human_flow"
+    model: str | None = "seedance-2.0"
+    ratio: str | None = "16:9"
+    duration: int | None = 10
+
+
+@app.post("/api/admin/jev/live-start")
+async def admin_jev_live_start(req: JevLiveStartRequest, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    acc = (req.account or "").strip()
+    if acc and acc not in pool.accounts:
+        if not (Path("accounts") / acc).exists():
+            raise HTTPException(404, f"Profile tài khoản '{acc}' không tồn tại trong thư mục accounts/")
+    if not acc:
+        # Ưu tiên tài khoản đã đăng nhập thành công (login_ok == 1)
+        for a in pool.list_accounts():
+            if a.get("login_ok") == 1:
+                acc = a["name"]
+                break
+        if not acc and pool.accounts:
+            acc = pool.accounts[0]
+    if not acc:
+        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
+    res = await jev_live_session.start(
+        account=acc,
+        prompt=req.prompt or "",
+        mode=req.mode or "human_flow",
+        model=req.model or "seedance-2.0",
+        ratio=req.ratio or "16:9",
+        duration=req.duration or 10,
+    )
+    if not res.get("ok"):
+        raise HTTPException(400, res.get("error", "Không thể khởi chạy phiên Live Jev"))
+    return res
+
+
+@app.get("/api/admin/jev/live-status")
+async def admin_jev_live_status(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return jev_live_session.get_status()
+
+
+@app.post("/api/admin/jev/live-stop")
+async def admin_jev_live_stop(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    await jev_live_session.stop()
+    return {"ok": True}
+
+
+@app.get("/api/admin/jev/live-stream")
+async def admin_jev_live_stream():
+    q = jev_live_session.subscribe()
+
+    async def event_generator():
+        try:
+            st = jev_live_session.get_status()
+            yield f"event: status\ndata: {json.dumps(st, ensure_ascii=False)}\n\n"
+            if jev_live_session.last_frame:
+                yield f"event: frame\ndata: {json.dumps({'image': jev_live_session.last_frame, 'caption': 'Khung hình hiện tại'}, ensure_ascii=False)}\n\n"
+
+            while True:
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=20.0)
+                    evt = msg.get("type", "message")
+                    yield f"event: {evt}\ndata: {json.dumps(msg, ensure_ascii=False)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            jev_live_session.unsubscribe(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+class FlowLiveStartRequest(BaseModel):
+    account: str | None = None
+    prompt: str | None = None
+    mode: str | None = "image"
+    model: str | None = "Nano Banana 2"
+    ratio: str | None = "16:9"
+    quantity: str | None = "x1"
+
+
+@app.post("/api/admin/flow/live-start")
+async def admin_flow_live_start(req: FlowLiveStartRequest, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    acc = (req.account or "").strip()
+    if not acc:
+        # Ưu tiên tài khoản đã đăng nhập
+        for a in pool.list_accounts():
+            if a.get("login_ok") == 1:
+                acc = a["name"]
+                break
+        if not acc and pool.accounts:
+            acc = pool.accounts[0]
+    if not acc:
+        acc = "vankhuong240_p185"
+
+    res = await flow_live_session.start(
+        account=acc,
+        prompt=req.prompt or "",
+        mode=req.mode or "image",
+        model=req.model or "Nano Banana 2",
+        ratio=req.ratio or "16:9",
+        quantity=req.quantity or "x1",
+    )
+    if not res.get("ok"):
+        raise HTTPException(400, res.get("error", "Không thể khởi chạy phiên Live Flow"))
+    return res
+
+
+@app.get("/api/admin/flow/live-status")
+async def admin_flow_live_status(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return flow_live_session.get_status()
+
+
+@app.post("/api/admin/flow/live-stop")
+async def admin_flow_live_stop(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    await flow_live_session.stop()
+    return {"ok": True}
+
+
+@app.get("/api/admin/flow/live-stream")
+async def admin_flow_live_stream():
+    q = flow_live_session.subscribe()
+
+    async def event_generator():
+        try:
+            st = flow_live_session.get_status()
+            yield f"event: status\ndata: {json.dumps(st, ensure_ascii=False)}\n\n"
+            if flow_live_session.last_frame:
+                yield f"event: frame\ndata: {json.dumps({'image': flow_live_session.last_frame, 'caption': 'Khung hình hiện tại'}, ensure_ascii=False)}\n\n"
+
+            while True:
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=20.0)
+                    evt = msg.get("type", "message")
+                    yield f"event: {evt}\ndata: {json.dumps(msg, ensure_ascii=False)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            flow_live_session.unsubscribe(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/api/admin/flow/elements")
+async def admin_flow_elements(account: str | None = None, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    acc = account or (pool.accounts[0] if pool.accounts else "vankhuong240_p185")
+    from patchright.async_api import async_playwright
+    async with async_playwright() as p:
+        try:
+            context = await flow_live_session._resolve_browser_context(p, acc)
+            try:
+                page = context.pages[0] if context.pages else await context.new_page()
+                await page.goto("https://flow.google.com/", timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(4000)
+                snapshot = await FlowElementLocator.snapshot(page)
+                return {"ok": True, "account": acc, "data": snapshot}
+            finally:
+                await context.close()
+        except Exception as e:
+            raise HTTPException(500, f"Flow element inspection failed: {str(e)[:200]}")
 
 
 @app.get("/api/admin/jobs")

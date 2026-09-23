@@ -64,7 +64,17 @@ async def launch_account_context(p, account: str, headless: bool = None, use_ext
     }
     if config.PROXY:
         kwargs["proxy"] = {"server": config.PROXY}
-    return await p.chromium.launch_persistent_context(str(profile_dir), **kwargs)
+    context = await p.chromium.launch_persistent_context(str(profile_dir), **kwargs)
+    cookies_file = profile_dir / "cookies.json"
+    if cookies_file.exists():
+        try:
+            import json
+            raw_cookies = json.loads(cookies_file.read_text(encoding="utf-8"))
+            if isinstance(raw_cookies, list) and raw_cookies:
+                await context.add_cookies(raw_cookies)
+        except Exception:
+            pass
+    return context
 
 
 def cookie_value(cookies: list, name: str) -> str:
