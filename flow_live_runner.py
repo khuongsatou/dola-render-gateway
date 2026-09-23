@@ -17,6 +17,7 @@ from typing import Any, AsyncGenerator
 
 from patchright.async_api import async_playwright
 
+from account_locks import acquire_account_execution, release_account_execution
 import config
 from browser import launch_account_context
 from flow_element_locator import FlowElementLocator
@@ -68,6 +69,7 @@ class FlowLiveSession:
         self.status_text: str = "Idle"
         self.listeners: list[asyncio.Queue] = []
         self._task: asyncio.Task | None = None
+        self._execution_acquired: bool = False
         self._stop_requested: bool = False
         self.history_logs: list[dict[str, Any]] = []
         self.last_frame: str | None = None
@@ -157,7 +159,14 @@ class FlowLiveSession:
         self.history_logs = []
         self.last_frame = None
 
-        self._task = asyncio.create_task(self._run_workflow())
+        await acquire_account_execution(self.account, config.MAX_CONCURRENCY)
+        self._execution_acquired = True
+        try:
+            self._task = asyncio.create_task(self._run_workflow())
+        except BaseException:
+            release_account_execution(self.account, config.MAX_CONCURRENCY)
+            self._execution_acquired = False
+            raise
         return {
             "ok": True,
             "account": account,
@@ -349,6 +358,8 @@ class FlowLiveSession:
                     except Exception as err:
                         logger.debug("Ratio setup note: %s", err)
 
+                    await self._apply_model_and_quantity(page)
+
                     frame_configured = await self._capture_frame_base64(page)
                     await self.broadcast("frame", {
                         "step": 4,
@@ -521,7 +532,31 @@ class FlowLiveSession:
             await self.broadcast("done", {"success": False, "message": str(e)})
         finally:
             self.is_running = False
+            if self._execution_acquired:
+                release_account_execution(self.account, config.MAX_CONCURRENCY)
+                self._execution_acquired = False
             await self.broadcast("status", {"running": False, "status": self.status_text})
+
+    async def _apply_model_and_quantity(self, page):
+        """Applies the selected Flow model and quantity when their controls are visible."""
+        for category, value, label in (
+            ("model_selector", self.model, "Model"),
+            ("quantity_selector", self.quantity, "Số lượng"),
+        ):
+            try:
+                selected = await FlowElementLocator.select_category_option(page, category, value)
+                if selected:
+                    await self.broadcast("log", {
+                        "level": "info",
+                        "message": f"Đã chọn {label}: {value}",
+                    })
+                else:
+                    await self.broadcast("log", {
+                        "level": "warn",
+                        "message": f"Không tìm thấy điều khiển {label}={value}; giữ cấu hình hiện tại.",
+                    })
+            except Exception as err:
+                logger.debug("%s setup note: %s", label, err)
 
 
 # Global singleton instance for Flow

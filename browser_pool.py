@@ -3,15 +3,15 @@ import asyncio
 import shutil
 import sqlite3
 import time
-from datetime import date, datetime, time as dt_time, timedelta, timezone
-from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from dola_client import CreditError
 from video_worker_ui import (
     AccountLimitedError, CreditInsufficientError, RiskControlError, generate_video, resume_video,
 )
+from account_locks import get_account_lock, get_execution_semaphore
 import config
+import quota_time
 
 DAILY_LIMIT = 2
 COOLDOWN_SEC = 1800  # 30-minute cooldown on risk control
@@ -26,12 +26,11 @@ class AllAccountsQuotaBlockedError(RuntimeError):
 
 
 class BrowserPool:
-    def __init__(self, accounts_dir: str = "accounts", db_path: str = "pool_usage.db",
+    def __init__(self, accounts_dir: str = "accounts", db_path: str | None = None,
                  max_concurrency: int = 1):
         self.accounts_dir = Path(accounts_dir)
-        self.semaphore = asyncio.Semaphore(max_concurrency)
-        self._locks: dict[str, asyncio.Lock] = {}
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.max_concurrency = max_concurrency
+        self._conn = sqlite3.connect(db_path or config.POOL_DB_PATH, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute(
             "CREATE TABLE IF NOT EXISTS usage (account TEXT, day TEXT, used INTEGER, "
@@ -102,7 +101,7 @@ class BrowserPool:
     def used_today(self, account: str) -> int:
         row = self._conn.execute(
             "SELECT used FROM usage WHERE account=? AND day=?",
-            (account, date.today().isoformat()),
+            (account, quota_time.day_key()),
         ).fetchone()
         return row[0] if row else 0
 
@@ -110,21 +109,13 @@ class BrowserPool:
         self._conn.execute(
             "INSERT INTO usage(account, day, used) VALUES (?,?,1) "
             "ON CONFLICT(account, day) DO UPDATE SET used=used+1",
-            (account, date.today().isoformat()),
+            (account, quota_time.day_key()),
         )
         self._conn.commit()
 
     def _next_limit_reset(self) -> float:
         """Calculates next daily quota reset timestamp."""
-        try:
-            tz = ZoneInfo(config.LIMIT_RESET_TZ)
-        except Exception:
-            # Fallback to fixed offset if tzdata is not installed.
-            offsets = {"Asia/Tokyo": 9, "Asia/Hong_Kong": 8, "UTC": 0}
-            tz = timezone(timedelta(hours=offsets.get(config.LIMIT_RESET_TZ, 9)))
-        now = datetime.now(tz)
-        next_day = now.date() + timedelta(days=1)
-        return datetime.combine(next_day, dt_time.min, tzinfo=tz).timestamp()
+        return quota_time.next_reset_ts()
 
     def _clear_expired_rate_limits(self):
         now = time.time()
@@ -148,7 +139,7 @@ class BrowserPool:
         self._conn.execute(
             "INSERT INTO usage(account, day, used) VALUES (?,?,?) "
             "ON CONFLICT(account, day) DO UPDATE SET used=MAX(used, excluded.used)",
-            (account, date.today().isoformat(), DAILY_LIMIT),
+            (account, quota_time.day_key(), DAILY_LIMIT),
         )
         self._conn.execute(
             "UPDATE accounts_meta SET last_used_at=?, rate_limited_until=?, limit_reason=? WHERE name=?",
@@ -164,7 +155,7 @@ class BrowserPool:
         for a in self.accounts:
             m = self._meta(a)
             used = self.used_today(a)
-            lock = self._locks.get(a)
+            lock = get_account_lock(a)
             out.append({
                 "name": a,
                 "scheduling": bool(m["scheduling"]) if m else True,
@@ -221,7 +212,7 @@ class BrowserPool:
         self._conn.commit()
 
     def delete_account(self, name: str):
-        lock = self._locks.get(name)
+        lock = get_account_lock(name)
         if lock and lock.locked():
             raise RuntimeError("Account is generating video, cannot delete")
         d = self.accounts_dir / name
@@ -234,7 +225,7 @@ class BrowserPool:
         """Verifies login state in headless mode and updates cache."""
         if name not in self.accounts:
             raise FileNotFoundError(f"Profile does not exist: {name}")
-        lock = self._locks.setdefault(name, asyncio.Lock())
+        lock = get_account_lock(name)
         if lock.locked():
             raise RuntimeError("Account is generating video, please verify later")
         from browser import check_login_state
@@ -303,8 +294,8 @@ class BrowserPool:
     async def resume_video(self, account: str, conversation_id: str, timeout: int,
                            on_poll=None) -> dict:
         """Resumes an accepted session without re-scheduling."""
-        async with self.semaphore:
-            lock = self._locks.setdefault(account, asyncio.Lock())
+        async with get_execution_semaphore(self.max_concurrency):
+            lock = get_account_lock(account)
             async with lock:
                 def on_balance(balance, source=""):
                     self._set_credit_balance(account, balance, source)
@@ -329,7 +320,7 @@ class BrowserPool:
                              preferred_account: str | None = None,
                              max_queue_wait_sec: int = 3600) -> dict:
         """Picks an idle schedulable account; waits in queue if all accounts are busy; rotates on limits."""
-        async with self.semaphore:
+        async with get_execution_semaphore(self.max_concurrency):
             queue_start = time.time()
             last_err = None
 
@@ -353,7 +344,7 @@ class BrowserPool:
                 found_available = False
                 for a in schedulable_accounts:
                     account = a["name"]
-                    lock = self._locks.setdefault(account, asyncio.Lock())
+                    lock = get_account_lock(account)
                     # Skip busy accounts to prevent concurrent collisions on same profile.
                     if lock.locked():
                         continue

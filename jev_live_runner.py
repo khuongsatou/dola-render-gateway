@@ -16,6 +16,7 @@ from typing import Any, AsyncGenerator
 
 from patchright.async_api import async_playwright
 
+from account_locks import acquire_account_execution, release_account_execution
 import config
 from browser import cookie_value, launch_account_context
 from dola_element_locator import DolaElementLocator
@@ -70,6 +71,7 @@ class JevLiveSession:
         self.status_text: str = "Idle"
         self.listeners: list[asyncio.Queue] = []
         self._task: asyncio.Task | None = None
+        self._execution_acquired: bool = False
         self._stop_requested: bool = False
         self.history_logs: list[dict[str, Any]] = []
         self.last_frame: str | None = None
@@ -159,7 +161,14 @@ class JevLiveSession:
         self.history_logs = []
         self.last_frame = None
 
-        self._task = asyncio.create_task(self._run_workflow())
+        await acquire_account_execution(self.account, config.MAX_CONCURRENCY)
+        self._execution_acquired = True
+        try:
+            self._task = asyncio.create_task(self._run_workflow())
+        except BaseException:
+            release_account_execution(self.account, config.MAX_CONCURRENCY)
+            self._execution_acquired = False
+            raise
         return {
             "ok": True,
             "account": account,
@@ -650,6 +659,9 @@ class JevLiveSession:
             await self.broadcast("done", {"success": False, "message": str(e)})
         finally:
             self.is_running = False
+            if self._execution_acquired:
+                release_account_execution(self.account, config.MAX_CONCURRENCY)
+                self._execution_acquired = False
             await self.broadcast("status", {"running": False, "status": self.status_text})
 
 

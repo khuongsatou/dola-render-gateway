@@ -29,7 +29,7 @@ async def launch_account_context(p, account: str, headless: bool = None, use_ext
         acc_incognito = False
         try:
             import sqlite3
-            conn = sqlite3.connect("pool_usage.db")
+            conn = sqlite3.connect(config.POOL_DB_PATH)
             row = conn.execute("SELECT incognito FROM accounts_meta WHERE name=?", (account,)).fetchone()
             if row and row[0]:
                 acc_incognito = True

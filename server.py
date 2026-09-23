@@ -17,7 +17,7 @@ import uuid
 from collections import defaultdict
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -26,6 +26,7 @@ from jev_live_runner import jev_live_session
 from flow_live_runner import flow_live_session
 from flow_element_locator import FlowElementLocator
 
+import auth_utils
 import config
 from add_account import add_account_flow
 from browser_pool import AllAccountsLimitedError, AllAccountsQuotaBlockedError, BrowserPool
@@ -39,7 +40,7 @@ Path("web").mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="dola-pool", version="0.4.0")
 
 store = TaskStore(config.DB_PATH)
-pool = BrowserPool(max_concurrency=config.MAX_CONCURRENCY)
+pool = BrowserPool(db_path=config.POOL_DB_PATH, max_concurrency=config.MAX_CONCURRENCY)
 
 app.mount("/videos", StaticFiles(directory=config.DOWNLOAD_DIR), name="videos")
 
@@ -151,6 +152,11 @@ def _admin_auth(x_admin_key: str | None):
         return
     if x_admin_key != config.ADMIN_KEY:
         raise HTTPException(401, "invalid admin key")
+
+
+def _require_stream_token(token: str | None):
+    if not auth_utils.is_stream_token_valid(config.ADMIN_KEY, token):
+        raise HTTPException(401, "invalid or expired stream token")
 
 
 def _normalize_allowed_durations(values) -> list[int]:
@@ -308,7 +314,7 @@ async def create_video(
     authorization: str | None = Header(default=None),
     x_admin_key: str | None = Header(default=None),
 ):
-    if x_admin_key:
+    if config.ADMIN_KEY and x_admin_key:
         _admin_auth(x_admin_key)
         client = _admin_client()
     else:
@@ -368,7 +374,7 @@ async def get_video(
     authorization: str | None = Header(default=None),
     x_admin_key: str | None = Header(default=None),
 ):
-    if x_admin_key:
+    if config.ADMIN_KEY and x_admin_key:
         _admin_auth(x_admin_key)
         row = store.get(task_id)
     else:
@@ -458,6 +464,15 @@ async def admin_login(body: AdminLogin):
     if body.key == config.ADMIN_KEY:
         return {"ok": True, "auth_required": True}
     raise HTTPException(401, "wrong admin key")
+
+
+@app.get("/api/admin/stream-token")
+async def admin_stream_token(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return {
+        "token": auth_utils.make_stream_token(config.ADMIN_KEY),
+        "expires_in": 300,
+    }
 
 
 @app.get("/api/admin/settings")
@@ -559,7 +574,7 @@ async def admin_chrome_profiles(x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
     profiles = chrome_profile_scanner.scan_chrome_profiles(
         accounts_dir=pool.accounts_dir,
-        db_path=config.DB_PATH.replace("tasks.db", "pool_usage.db") if "tasks.db" in config.DB_PATH else "pool_usage.db",
+        db_path=config.POOL_DB_PATH,
     )
     return {
         "ok": True,
@@ -577,7 +592,7 @@ async def admin_chrome_profile_import(body: ChromeProfileImport, x_admin_key: st
             directory=body.directory,
             target_name=body.name,
             accounts_dir=pool.accounts_dir,
-            db_path="pool_usage.db",
+            db_path=config.POOL_DB_PATH,
         )
         # Ensure pool recognizes the newly imported account
         pool._ensure_meta(res["name"])
@@ -594,7 +609,7 @@ async def admin_chrome_profiles_bulk_import(body: ChromeProfileBulkImport, x_adm
             directories=body.directories,
             prefix=body.prefix or "p_",
             accounts_dir=pool.accounts_dir,
-            db_path="pool_usage.db",
+            db_path=config.POOL_DB_PATH,
         )
         for r in summary.get("results", []):
             if r.get("name"):
@@ -681,7 +696,8 @@ async def admin_jev_live_stop(x_admin_key: str | None = Header(default=None)):
 
 
 @app.get("/api/admin/jev/live-stream")
-async def admin_jev_live_stream():
+async def admin_jev_live_stream(token: str | None = Query(default=None)):
+    _require_stream_token(token)
     q = jev_live_session.subscribe()
 
     async def event_generator():
@@ -734,7 +750,7 @@ async def admin_flow_live_start(req: FlowLiveStartRequest, x_admin_key: str | No
         if not acc and pool.accounts:
             acc = pool.accounts[0]
     if not acc:
-        acc = "vankhuong240_p185"
+        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
 
     res = await flow_live_session.start(
         account=acc,
@@ -763,7 +779,8 @@ async def admin_flow_live_stop(x_admin_key: str | None = Header(default=None)):
 
 
 @app.get("/api/admin/flow/live-stream")
-async def admin_flow_live_stream():
+async def admin_flow_live_stream(token: str | None = Query(default=None)):
+    _require_stream_token(token)
     q = flow_live_session.subscribe()
 
     async def event_generator():
@@ -797,7 +814,9 @@ async def admin_flow_live_stream():
 @app.get("/api/admin/flow/elements")
 async def admin_flow_elements(account: str | None = None, x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    acc = account or (pool.accounts[0] if pool.accounts else "vankhuong240_p185")
+    acc = account or (pool.accounts[0] if pool.accounts else None)
+    if not acc:
+        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
     from patchright.async_api import async_playwright
     async with async_playwright() as p:
         try:
@@ -909,4 +928,3 @@ async def redirect_web():
 
 # Dashboard single-file frontend
 app.mount("/", StaticFiles(directory="web", html=True), name="web")
-

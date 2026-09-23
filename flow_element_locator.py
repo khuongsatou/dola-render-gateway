@@ -303,3 +303,33 @@ class FlowElementLocator:
     async def find_submit_button(page) -> dict[str, Any] | None:
         snap = await FlowElementLocator.snapshot(page)
         return snap.get("categories", {}).get("submit_button")
+
+    @staticmethod
+    async def select_category_option(page, category: str, value: str) -> bool:
+        """Clicks a matching model, ratio, or quantity option from the indexed snapshot."""
+        data = await FlowElementLocator.snapshot(page)
+        candidates = data.get("categories", {}).get(category) or []
+        if isinstance(candidates, dict):
+            candidates = [candidates]
+
+        target = (value or "").strip().lower()
+        if not target:
+            return False
+
+        match = next(
+            (
+                item
+                for item in candidates
+                if target in str(item.get("label", "")).strip().lower()
+                or str(item.get("label", "")).strip().lower() in target
+            ),
+            None,
+        )
+        if not match:
+            return False
+
+        center = match.get("center") or {}
+        if "x" not in center or "y" not in center:
+            return False
+        await page.mouse.click(center["x"], center["y"])
+        return True

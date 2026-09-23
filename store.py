@@ -7,6 +7,8 @@ import sqlite3
 import threading
 import time
 
+import quota_time
+
 _LOCK = threading.Lock()
 SUPPORTED_DURATIONS = (10, 15, 30)
 DEFAULT_ALLOWED_DURATIONS = list(SUPPORTED_DURATIONS)
@@ -165,11 +167,11 @@ class TaskStore:
                         f"Pending task queue has reached server limit ({max_pending})"
                     )
             if daily_limit > 0 and api_key_hash:
-                day = datetime.date.today().isoformat()
+                day_start, day_end = quota_time.day_bounds()
                 used = self._conn.execute(
                     "SELECT COUNT(*) FROM tasks "
-                    "WHERE api_key_hash=? AND date(created_at,'unixepoch','localtime')=?",
-                    (api_key_hash, day),
+                    "WHERE api_key_hash=? AND created_at>=? AND created_at<?",
+                    (api_key_hash, day_start, day_end),
                 ).fetchone()[0]
                 if used >= daily_limit:
                     raise TaskQuotaExceeded(
@@ -269,7 +271,8 @@ class TaskStore:
         return [dict(r) for r in rows]
 
     def key_usage(self, api_key_hash: str, day: str | None = None) -> dict:
-        day = day or datetime.date.today().isoformat()
+        day = day or quota_time.day_key()
+        day_start, day_end = quota_time.day_bounds(day)
         with _LOCK:
             row = self._conn.execute(
                 "SELECT COUNT(*) AS total, "
@@ -278,8 +281,8 @@ class TaskStore:
                 "SUM(status='processing') AS active, "
                 "SUM(status='queued') AS queued "
                 "FROM tasks WHERE api_key_hash=? "
-                "AND date(created_at,'unixepoch','localtime')=?",
-                (api_key_hash, day),
+                "AND created_at>=? AND created_at<?",
+                (api_key_hash, day_start, day_end),
             ).fetchone()
         return {
             "day": day,

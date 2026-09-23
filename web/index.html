@@ -372,6 +372,11 @@ main {
 .animate-spin { animation: spin 0.8s linear infinite; display: inline-block; }
 
 /* Tables */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 table { width: 100%; border-collapse: collapse; }
 th, td {
   text-align: left;
@@ -715,6 +720,69 @@ td .prompt {
   box-shadow: 0 0 0 3px var(--background);
 }
 
+/* Responsive Dashboard */
+@media (max-width: 768px) {
+  header {
+    height: auto;
+    min-height: 60px;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .brand {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+  .brand-title {
+    min-width: 0;
+  }
+  .brand-title strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .head-actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  nav {
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 12px;
+    overflow-x: auto;
+  }
+  nav button {
+    flex: 0 0 auto;
+  }
+  main {
+    padding: 12px 12px 40px;
+  }
+  .chart-wrap {
+    gap: 8px;
+  }
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+  .dialog-box {
+    max-width: calc(100vw - 24px);
+  }
+  .studio-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .studio-actions .btn {
+    flex: 1 1 180px;
+    max-width: 100%;
+    height: auto;
+    min-height: 34px;
+    white-space: normal;
+  }
+}
+
 /* Floating Action Toolbar on Canvas */
 .canvas-toolbar {
   position: absolute;
@@ -800,7 +868,7 @@ td .prompt {
             <span style="font-size:12px;color:var(--ink-2)">Nhập câu lệnh tạo video AI Dola, hỗ trợ thời lượng 10s · 15s · 30s mở rộng</span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div class="studio-actions" style="display:flex;align-items:center;gap:8px">
           <span class="badge b-purple"><i class="bi bi-stars"></i> Seedance AI</span>
           <span class="badge b-blue" id="availableAccCountBadge">Đang kết nối Pool...</span>
         </div>
@@ -862,7 +930,7 @@ td .prompt {
         </div>
 
         <!-- Action buttons -->
-        <div style="display:flex;align-items:center;gap:8px">
+        <div class="studio-actions" style="display:flex;align-items:center;gap:8px">
           <button id="btnDolaStudioLiveJev" type="button" class="btn press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,0.3)" onclick="openLiveFlowModal()">
             <i class="bi bi-broadcast"></i> Tạo & Xem Live Flow (Google)
           </button>
@@ -1390,8 +1458,8 @@ function statusBadge(a) {
 }
 
 function table(heads, rows) {
-  return `<table><thead><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.length ? rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${heads.length}" style="text-align:center;padding:30px;color:var(--ink-3)">Không có dữ liệu</td></tr>`}</tbody></table>`;
+  return `<div class="table-scroll"><table><thead><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length ? rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${heads.length}" style="text-align:center;padding:30px;color:var(--ink-3)">Không có dữ liệu</td></tr>`}</tbody></table></div>`;
 }
 
 async function setSched(name, on) {
@@ -1665,7 +1733,7 @@ function renderScanProfilesModal(profiles) {
       <h2 style="margin:0"><i class="bi bi-search text-primary"></i> Quét Chrome Profiles (${total} tìm thấy)</h2>
       <span style="font-size:12px;color:var(--primary-dark)">${imported} đã nạp vào Dola</span>
     </div>
-    <div id="scanListContainer" style="max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)"></div>
+    <div id="scanListContainer" style="max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
       <button class="btn press" onclick="hide('dlg')">Đóng</button>
     </div>
@@ -1733,7 +1801,7 @@ async function openLiveFlowModal(targetAcc = null) {
   } catch(e) {}
 
   const verifiedAcc = accList.find(x => x.login_ok === 1)?.name;
-  const defaultAcc = targetAcc || verifiedAcc || (accList.length ? accList[0].name : 'vankhuong240_p185');
+  const defaultAcc = targetAcc || verifiedAcc || (accList.length ? accList[0].name : '');
   const accOptions = accList.map(x => {
     const isVerified = x.login_ok === 1;
     const tag = isVerified ? '✓ [Google Session Active]' : '⚠️ [Chưa Xác Thực/Offline]';
@@ -1762,8 +1830,8 @@ async function openLiveFlowModal(targetAcc = null) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Tài khoản Chrome Profile</label>
-          <select id="liveFlowAccSelect" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
-            ${accOptions || '<option value="vankhuong240_p185">vankhuong240_p185 (Profile 185)</option>'}
+          <select id="liveFlowAccSelect" ${accOptions ? '' : 'disabled'} style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            ${accOptions || '<option value="">Không có tài khoản khả dụng</option>'}
           </select>
         </div>
         <div>
@@ -1889,12 +1957,22 @@ function updateFlowStepperUi(current, total) {
   }
 }
 
-function initLiveFlowStream() {
+async function initLiveFlowStream() {
   if (liveFlowEventSource) {
     try { liveFlowEventSource.close(); } catch(e) {}
+    liveFlowEventSource = null;
   }
 
-  liveFlowEventSource = new EventSource('/api/admin/flow/live-stream');
+  let token = '';
+  try {
+    const data = await api('/api/admin/stream-token');
+    token = data.token || '';
+  } catch(e) {
+    appendLiveFlowLog('[Live Flow] Không thể lấy quyền truy cập SSE: ' + e.message, 'danger');
+    return;
+  }
+
+  liveFlowEventSource = new EventSource(`/api/admin/flow/live-stream?token=${encodeURIComponent(token)}`);
 
   liveFlowEventSource.addEventListener('status', e => {
     try {
