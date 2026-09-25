@@ -161,13 +161,9 @@ list is only included for an authenticated admin (or in loopback dev mode).
 ```
 
 
-### 🌐 SonicVoice (For Voice Clone)
-
-[![Website](https://img.shields.io/badge/Website-SonicVoice.pro-6366f1?style=for-the-badge&logo=google-chrome&logoColor=white)](https://sonicvoice.pro)
-
 ### 💬 Admin & Support
 
-[![Zalo](https://img.shields.io/badge/Zalo-Nhóm%20Zalo-0068FF?style=for-the-badge&logoColor=white)](https://zalo.me/g/jvwa05y9id3apkgfocw0)
+[![Zalo](https://img.shields.io/badge/Zalo-Nhóm%20Zalo-0068FF?style=for-the-badge&logoColor=white)](https://zalo.me/g/newwww890)
 
 ---
 
