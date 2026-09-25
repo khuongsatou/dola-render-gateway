@@ -183,34 +183,13 @@ class FlowLiveSession:
         return f"data:image/jpeg;base64,{b64}"
 
     async def _resolve_browser_context(self, p, account: str):
-        """Resolves existing profile from accounts/ or native Chrome user data directory."""
-        # 1. Check local accounts directory
-        acc_dir = Path("accounts") / account
-        if acc_dir.exists():
-            return await launch_account_context(p, account, headless=True, incognito=False)
-
-        # 2. Check native Chrome profile
-        chrome_root = Path.home() / "Library" / "Application Support" / "Google" / "Chrome"
-        candidate_dir = chrome_root / account
-        if candidate_dir.exists():
-            context = await p.chromium.launch_persistent_context(
-                user_data_dir=str(candidate_dir),
-                headless=True,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-first-run",
-                    "--no-default-browser-check",
-                ],
-                viewport={"width": 1280, "height": 800},
-            )
-            return context
-
-        # 3. Fallback to first available account in accounts/
-        for pth in Path("accounts").iterdir():
-            if pth.is_dir() and not pth.name.startswith("."):
-                return await launch_account_context(p, pth.name, headless=True, incognito=False)
-
-        raise FileNotFoundError(f"Không tìm thấy thư mục profile cho '{account}'")
+        """Resolves an existing profile, strictly from the local accounts pool."""
+        accounts_root = Path("accounts").resolve()
+        acc_dir = (accounts_root / account).resolve()
+        # No fallback: a requested account must be this exact profile inside accounts/.
+        if acc_dir.parent != accounts_root or not acc_dir.is_dir():
+            raise FileNotFoundError(f"Không tìm thấy thư mục profile cho '{account}'")
+        return await launch_account_context(p, account, headless=True, incognito=False)
 
     async def _run_workflow(self):
         mouse_pos = (300.0, 200.0)

@@ -9,16 +9,16 @@ Admin Dashboard: GET / -> web/index.html; Admin API /api/admin/*
 """
 import asyncio
 import hashlib
+import hmac
 import json
 import re
-import shutil
 import time
 import uuid
 from collections import defaultdict
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, Query
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -26,12 +26,18 @@ from jev_live_runner import jev_live_session
 from flow_live_runner import flow_live_session
 from flow_element_locator import FlowElementLocator
 
+import account_locks
 import auth_utils
 import config
 from add_account import add_account_flow
 from browser_pool import AllAccountsLimitedError, AllAccountsQuotaBlockedError, BrowserPool
 import chrome_profile_scanner
-from media import download_reference_images, validate_reference_urls
+import mcp_integration
+from media import (
+    cleanup_reference_images,
+    download_reference_images,
+    validate_reference_urls,
+)
 from store import PendingTaskLimitExceeded, TaskQuotaExceeded, TaskStore
 
 Path(config.DOWNLOAD_DIR).mkdir(parents=True, exist_ok=True)
@@ -41,8 +47,6 @@ app = FastAPI(title="dola-pool", version="0.4.0")
 
 store = TaskStore(config.DB_PATH)
 pool = BrowserPool(db_path=config.POOL_DB_PATH, max_concurrency=config.MAX_CONCURRENCY)
-
-app.mount("/videos", StaticFiles(directory=config.DOWNLOAD_DIR), name="videos")
 
 # Background jobs (add/verify), in-memory
 JOBS: dict[str, dict] = {}
@@ -54,6 +58,8 @@ SIZE_TO_RATIO = {
 }
 SUPPORTED_DURATIONS = (10, 15, 30)
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
+ACCOUNT_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+VIDEO_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
 class KeyConcurrencyLimiter:
@@ -123,9 +129,39 @@ def _admin_client() -> dict:
     }
 
 
-def _auth(authorization):
-    """Returns client policy for caller; empty key enables dev mode."""
+def _local_dev_mode() -> bool:
+    """Unauthenticated dev mode requires an explicit opt-in on a loopback host.
+
+    The bind address of the running server can be changed independently of
+    DOLA_HOST (for example with `uvicorn --host 0.0.0.0`), so HOST alone is not
+    trusted as the security boundary.
+    """
+    return config.ALLOW_UNAUTHENTICATED and config.is_loopback_host(config.HOST)
+
+
+def security_config_error() -> str | None:
+    """Returns a startup error when the service would run unauthenticated off-host."""
+    if _local_dev_mode():
+        return None
+    missing = []
+    if not config.ADMIN_KEY:
+        missing.append("DOLA_ADMIN_KEY")
     if not config.API_KEYS and not store.has_enabled_keys():
+        missing.append("DOLA_API_KEYS (or an enabled dashboard API key)")
+    if not missing:
+        return None
+    return (
+        f"Refusing to start without authentication. Set {', '.join(missing)}. "
+        "For local-only unauthenticated development, set DOLA_HOST=127.0.0.1 and "
+        "DOLA_ALLOW_UNAUTHENTICATED=1 explicitly."
+    )
+
+
+def _auth(authorization):
+    """Returns client policy for caller; missing keys fail closed off-host."""
+    if not config.API_KEYS and not store.has_enabled_keys():
+        if not _local_dev_mode():
+            raise HTTPException(503, "server authentication is not configured")
         return _anonymous_client()
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
@@ -149,14 +185,48 @@ def _auth(authorization):
 
 def _admin_auth(x_admin_key: str | None):
     if not config.ADMIN_KEY:
+        if not _local_dev_mode():
+            raise HTTPException(503, "admin authentication is not configured")
         return
-    if x_admin_key != config.ADMIN_KEY:
+    if not x_admin_key or not hmac.compare_digest(x_admin_key, config.ADMIN_KEY):
         raise HTTPException(401, "invalid admin key")
 
 
 def _require_stream_token(token: str | None):
-    if not auth_utils.is_stream_token_valid(config.ADMIN_KEY, token):
+    if config.ADMIN_KEY:
+        valid = auth_utils.is_stream_token_valid(config.ADMIN_KEY, token)
+    else:
+        valid = _local_dev_mode()
+    if not valid:
         raise HTTPException(401, "invalid or expired stream token")
+
+
+def _require_pool_account(account: str | None, *, default_first: bool = False) -> str:
+    """Returns a pool account name, rejecting unknown names and path-like values."""
+    name = (account or "").strip()
+    if not name and default_first:
+        accounts = pool.accounts
+        name = accounts[0] if accounts else ""
+    if not name:
+        raise HTTPException(400, "no accounts available in pool")
+    # Membership in pool.accounts already proves this is a real single-level
+    # directory under accounts/; older imports may still contain ".." inside a
+    # sanitized name, so it is not rejected on its own.
+    if not ACCOUNT_NAME_RE.match(name) or name not in pool.accounts:
+        raise HTTPException(404, f"account '{name}' is not an account in the pool")
+    return name
+
+
+def _signed_video_url(video_url: str | None) -> str | None:
+    """Adds a signed download token so browser playback works without header auth."""
+    if not video_url:
+        return None
+    base = str(video_url).split("?", 1)[0]
+    name = base.rsplit("/", 1)[-1]
+    if not name or not config.ADMIN_KEY:
+        return str(video_url)
+    token = auth_utils.make_media_token(config.ADMIN_KEY, name, ttl=config.MEDIA_TOKEN_TTL)
+    return f"{base}?token={token}"
 
 
 def _normalize_allowed_durations(values) -> list[int]:
@@ -176,12 +246,14 @@ def _normalize_allowed_durations(values) -> list[int]:
 
 class VideoGenRequest(BaseModel):
     model: str = "seedance-2.0"
-    prompt: str = Field(..., min_length=1)
+    prompt: str = Field(..., min_length=1, max_length=config.PROMPT_MAX_LENGTH)
     size: str | None = None
     ratio: str | None = None
     duration: int | None = Field(None, ge=10, le=30)
     # Accepts durations: 10, 15, 30 seconds.
-    reference_images: list[str] = Field(default_factory=list)
+    reference_images: list[str] = Field(
+        default_factory=list, max_length=config.REFERENCE_IMAGE_MAX_COUNT
+    )
     account: str | None = None
 
 
@@ -236,7 +308,7 @@ async def _run_task(task_id, model, prompt, ratio, duration, reference_images, c
                      finished_at=time.time())
     finally:
         if reference_root:
-            shutil.rmtree(reference_root, ignore_errors=True)
+            await cleanup_reference_images(reference_root)
         if acquired:
             await key_limiter.release(api_key_hash)
 
@@ -296,6 +368,9 @@ def _task_reference_images(raw) -> list[str]:
 @app.on_event("startup")
 async def resume_incomplete_tasks():
     """Recovers accepted sessions on startup and requeues pending tasks."""
+    config_error = security_config_error()
+    if config_error:
+        raise RuntimeError(config_error)
     for row in store.recoverable_tasks():
         asyncio.create_task(_resume_task(row))
     for row in store.recoverable_queued_tasks():
@@ -377,9 +452,11 @@ async def get_video(
     if config.ADMIN_KEY and x_admin_key:
         _admin_auth(x_admin_key)
         row = store.get(task_id)
+        video_url = _signed_video_url(row["video_url"]) if row else None
     else:
         client = _auth(authorization)
         row = store.get_for_client(task_id, client["api_key_hash"])
+        video_url = row["video_url"] if row else None
     if not row:
         raise HTTPException(404, "task not found")
     return TaskResponse(
@@ -387,20 +464,73 @@ async def get_video(
         status=row["status"],
         model=row["model"],
         prompt=row["prompt"],
-        video_url=row["video_url"],
+        video_url=video_url,
         error=row["error"],
     )
 
 
+@app.get("/videos/{filename}")
+async def download_video(
+    filename: str,
+    token: str | None = Query(default=None),
+    authorization: str | None = Header(default=None),
+    x_admin_key: str | None = Header(default=None),
+):
+    """Serves stored videos to their owner, an authenticated admin, or a signed link."""
+    if not VIDEO_NAME_RE.match(filename):
+        raise HTTPException(404, "video not found")
+    row = None
+    if config.ADMIN_KEY:
+        if x_admin_key and hmac.compare_digest(x_admin_key, config.ADMIN_KEY):
+            row = store.get_by_video_name(filename)
+        elif auth_utils.is_media_token_valid(config.ADMIN_KEY, filename, token):
+            row = store.get_by_video_name(filename)
+    elif _local_dev_mode():
+        row = store.get_by_video_name(filename)
+    if row is None:
+        client = _auth(authorization)
+        row = store.get_by_video_name_for_client(filename, client["api_key_hash"])
+    if not row:
+        raise HTTPException(404, "video not found")
+    download_root = Path(config.DOWNLOAD_DIR).resolve()
+    path = (download_root / filename).resolve()
+    if path.parent != download_root or not path.is_file():
+        raise HTTPException(404, "video not found")
+    # Inline keeps player <video> sources working; the download buttons use the `download` attribute.
+    try:
+        mcp_integration.record_activity(
+            None,
+            tool="download_video",
+            status="success",
+            metric="video_download_success",
+        )
+    except Exception:
+        pass
+    return FileResponse(
+        str(path),
+        media_type="video/mp4",
+        filename=filename,
+        content_disposition_type="inline",
+    )
+
+
 @app.get("/health")
-async def health():
-    return {
+async def health(x_admin_key: str | None = Header(default=None)):
+    statuses = pool.account_status()
+    payload = {
         "ok": True,
-        "accounts": pool.account_status(),
         "available": pool.available,
         "pending_tasks": store.pending_task_count(),
         "max_pending_tasks": config.MAX_PENDING_TASKS,
+        "accounts_total": len(statuses),
+        "accounts_available": sum(1 for s in statuses if not s["rate_limited"] and not s["quota_blocked"]),
     }
+    # Per-account names are only exposed to an authenticated admin/dev caller.
+    if _local_dev_mode() or (
+        config.ADMIN_KEY and x_admin_key and hmac.compare_digest(x_admin_key, config.ADMIN_KEY)
+    ):
+        payload["accounts"] = statuses
+    return payload
 
 
 # ===== Admin Dashboard API =====
@@ -460,8 +590,10 @@ class KeyPatch(BaseModel):
 @app.post("/api/admin/login")
 async def admin_login(body: AdminLogin):
     if not config.ADMIN_KEY:
+        if not _local_dev_mode():
+            raise HTTPException(503, "admin authentication is not configured")
         return {"ok": True, "auth_required": False}
-    if body.key == config.ADMIN_KEY:
+    if body.key and hmac.compare_digest(body.key, config.ADMIN_KEY):
         return {"ok": True, "auth_required": True}
     raise HTTPException(401, "wrong admin key")
 
@@ -622,30 +754,29 @@ async def admin_chrome_profiles_bulk_import(body: ChromeProfileBulkImport, x_adm
 @app.get("/api/admin/dola/elements")
 async def admin_dola_elements(account: str | None = None, x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    acc = account or (pool.accounts[0] if pool.accounts else None)
-    if not acc:
-        raise HTTPException(400, "no accounts available in pool")
+    acc = _require_pool_account(account, default_first=True)
     from patchright.async_api import async_playwright
     from browser import launch_account_context
     from dola_element_locator import DolaElementLocator
-    async with async_playwright() as p:
-        try:
-            context = await launch_account_context(p, acc, headless=True)
+    async with account_locks.account_execution(acc, config.MAX_CONCURRENCY):
+        async with async_playwright() as p:
             try:
-                page = context.pages[0] if context.pages else await context.new_page()
-                await page.goto("https://www.dola.com/chat", timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(4000)
-                snapshot = await DolaElementLocator.snapshot(page)
-                return {"ok": True, "account": acc, "data": snapshot}
-            finally:
-                await context.close()
-        except Exception as e:
-            raise HTTPException(500, f"Element inspection failed: {str(e)[:200]}")
+                context = await launch_account_context(p, acc, headless=True)
+                try:
+                    page = context.pages[0] if context.pages else await context.new_page()
+                    await page.goto("https://www.dola.com/chat", timeout=60000, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(4000)
+                    snapshot = await DolaElementLocator.snapshot(page)
+                    return {"ok": True, "account": acc, "data": snapshot}
+                finally:
+                    await context.close()
+            except Exception as e:
+                raise HTTPException(500, f"Element inspection failed: {str(e)[:200]}")
 
 
 class JevLiveStartRequest(BaseModel):
     account: str | None = None
-    prompt: str | None = None
+    prompt: str | None = Field(default=None, max_length=config.PROMPT_MAX_LENGTH)
     mode: str | None = "human_flow"
     model: str | None = "seedance-2.0"
     ratio: str | None = "16:9"
@@ -656,19 +787,13 @@ class JevLiveStartRequest(BaseModel):
 async def admin_jev_live_start(req: JevLiveStartRequest, x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
     acc = (req.account or "").strip()
-    if acc and acc not in pool.accounts:
-        if not (Path("accounts") / acc).exists():
-            raise HTTPException(404, f"Profile tài khoản '{acc}' không tồn tại trong thư mục accounts/")
     if not acc:
         # Ưu tiên tài khoản đã đăng nhập thành công (login_ok == 1)
         for a in pool.list_accounts():
             if a.get("login_ok") == 1:
                 acc = a["name"]
                 break
-        if not acc and pool.accounts:
-            acc = pool.accounts[0]
-    if not acc:
-        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
+    acc = _require_pool_account(acc, default_first=True)
     res = await jev_live_session.start(
         account=acc,
         prompt=req.prompt or "",
@@ -730,11 +855,12 @@ async def admin_jev_live_stream(token: str | None = Query(default=None)):
 
 class FlowLiveStartRequest(BaseModel):
     account: str | None = None
-    prompt: str | None = None
-    mode: str | None = "image"
-    model: str | None = "Nano Banana 2"
+    prompt: str | None = Field(default=None, max_length=config.PROMPT_MAX_LENGTH)
+    mode: str | None = "human_flow"
+    model: str | None = "seedance-2.0"
     ratio: str | None = "16:9"
-    quantity: str | None = "x1"
+    duration: int | None = 10
+    quantity: str | None = None
 
 
 @app.post("/api/admin/flow/live-start")
@@ -747,48 +873,45 @@ async def admin_flow_live_start(req: FlowLiveStartRequest, x_admin_key: str | No
             if a.get("login_ok") == 1:
                 acc = a["name"]
                 break
-        if not acc and pool.accounts:
-            acc = pool.accounts[0]
-    if not acc:
-        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
+    acc = _require_pool_account(acc, default_first=True)
 
-    res = await flow_live_session.start(
+    res = await jev_live_session.start(
         account=acc,
         prompt=req.prompt or "",
-        mode=req.mode or "image",
-        model=req.model or "Nano Banana 2",
+        mode=req.mode or "human_flow",
+        model=req.model or "seedance-2.0",
         ratio=req.ratio or "16:9",
-        quantity=req.quantity or "x1",
+        duration=req.duration or 10,
     )
     if not res.get("ok"):
-        raise HTTPException(400, res.get("error", "Không thể khởi chạy phiên Live Flow"))
+        raise HTTPException(400, res.get("error", "Không thể khởi chạy phiên Live Dola"))
     return res
 
 
 @app.get("/api/admin/flow/live-status")
 async def admin_flow_live_status(x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    return flow_live_session.get_status()
+    return jev_live_session.get_status()
 
 
 @app.post("/api/admin/flow/live-stop")
 async def admin_flow_live_stop(x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    await flow_live_session.stop()
+    await jev_live_session.stop()
     return {"ok": True}
 
 
 @app.get("/api/admin/flow/live-stream")
 async def admin_flow_live_stream(token: str | None = Query(default=None)):
     _require_stream_token(token)
-    q = flow_live_session.subscribe()
+    q = jev_live_session.subscribe()
 
     async def event_generator():
         try:
-            st = flow_live_session.get_status()
+            st = jev_live_session.get_status()
             yield f"event: status\ndata: {json.dumps(st, ensure_ascii=False)}\n\n"
-            if flow_live_session.last_frame:
-                yield f"event: frame\ndata: {json.dumps({'image': flow_live_session.last_frame, 'caption': 'Khung hình hiện tại'}, ensure_ascii=False)}\n\n"
+            if jev_live_session.last_frame:
+                yield f"event: frame\ndata: {json.dumps({'image': jev_live_session.last_frame, 'caption': 'Khung hình hiện tại'}, ensure_ascii=False)}\n\n"
 
             while True:
                 try:
@@ -798,7 +921,7 @@ async def admin_flow_live_stream(token: str | None = Query(default=None)):
                 except asyncio.TimeoutError:
                     yield ": ping\n\n"
         finally:
-            flow_live_session.unsubscribe(q)
+            jev_live_session.unsubscribe(q)
 
     return StreamingResponse(
         event_generator(),
@@ -814,23 +937,24 @@ async def admin_flow_live_stream(token: str | None = Query(default=None)):
 @app.get("/api/admin/flow/elements")
 async def admin_flow_elements(account: str | None = None, x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    acc = account or (pool.accounts[0] if pool.accounts else None)
-    if not acc:
-        raise HTTPException(400, "Không có tài khoản khả dụng trong pool")
+    acc = _require_pool_account(account, default_first=True)
     from patchright.async_api import async_playwright
-    async with async_playwright() as p:
-        try:
-            context = await flow_live_session._resolve_browser_context(p, acc)
+    from browser import launch_account_context
+    from dola_element_locator import DolaElementLocator
+    async with account_locks.account_execution(acc, config.MAX_CONCURRENCY):
+        async with async_playwright() as p:
             try:
-                page = context.pages[0] if context.pages else await context.new_page()
-                await page.goto("https://flow.google.com/", timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(4000)
-                snapshot = await FlowElementLocator.snapshot(page)
-                return {"ok": True, "account": acc, "data": snapshot}
-            finally:
-                await context.close()
-        except Exception as e:
-            raise HTTPException(500, f"Flow element inspection failed: {str(e)[:200]}")
+                context = await launch_account_context(p, acc, headless=True, incognito=False)
+                try:
+                    page = context.pages[0] if context.pages else await context.new_page()
+                    await page.goto("https://www.dola.com/chat", timeout=60000, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(4000)
+                    snapshot = await DolaElementLocator.snapshot(page)
+                    return {"ok": True, "account": acc, "data": snapshot}
+                finally:
+                    await context.close()
+            except Exception as e:
+                raise HTTPException(500, f"Dola element inspection failed: {str(e)[:200]}")
 
 
 @app.get("/api/admin/jobs")
@@ -842,7 +966,10 @@ async def admin_jobs(x_admin_key: str | None = Header(default=None)):
 @app.get("/api/admin/tasks")
 async def admin_tasks(limit: int = 50, x_admin_key: str | None = Header(default=None)):
     _admin_auth(x_admin_key)
-    return {"tasks": store.recent_tasks(min(max(limit, 1), 200))}
+    tasks = store.recent_tasks(min(max(limit, 1), 200))
+    for task in tasks:
+        task["video_url"] = _signed_video_url(task.get("video_url"))
+    return {"tasks": tasks}
 
 
 @app.get("/api/admin/stats")
@@ -920,10 +1047,69 @@ async def admin_key_delete(key: str, x_admin_key: str | None = Header(default=No
     return {"ok": True}
 
 
-@app.get("/web")
-@app.get("/web/")
-async def redirect_web():
-    return RedirectResponse(url="/")
+
+# ===== MCP Integration Routes =====
+import mcp_integration
+
+
+class McpKeyCreateBody(BaseModel):
+    name: str = "MCP Assistant"
+
+
+@app.get("/api/mcp/config")
+async def mcp_config_endpoint():
+    return mcp_integration.public_config()
+
+
+@app.get("/api/mcp/keys")
+async def mcp_keys_list(x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return {"ok": True, "keys": mcp_integration.list_keys()}
+
+
+@app.post("/api/mcp/keys")
+async def mcp_key_create(body: McpKeyCreateBody, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return mcp_integration.create_key(body.name)
+
+
+@app.delete("/api/mcp/keys/{key_id}")
+async def mcp_key_revoke(key_id: str, x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    ok = mcp_integration.revoke_key(key_id)
+    if not ok:
+        raise HTTPException(404, "MCP API key not found")
+    return {"ok": True, "revoked": key_id}
+
+
+@app.get("/api/mcp/usage")
+async def mcp_usage_endpoint(period: str = Query("today"), x_admin_key: str | None = Header(default=None)):
+    _admin_auth(x_admin_key)
+    return mcp_integration.get_usage(period=period)
+
+
+@app.post("/mcp")
+async def mcp_gateway(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON payload")
+    headers = dict(request.headers)
+    response = await mcp_integration.handle_mcp_request(body, headers, store, pool)
+    return response
+
+
+@app.get("/mcp")
+async def mcp_info():
+    config_data = mcp_integration.public_config()
+    return {
+        "ok": True,
+        "service": config_data["product"]["name"],
+        "transport": "streamable-http",
+        "protocolVersion": config_data["protocolVersion"],
+        "endpoint": config_data["endpoint"],
+        "tools": mcp_integration.get_tool_catalog(),
+    }
 
 
 # Dashboard single-file frontend

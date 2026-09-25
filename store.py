@@ -232,6 +232,41 @@ class TaskStore:
                 ).fetchone()
         return dict(row) if row else None
 
+    @staticmethod
+    def _video_basename(video_url: str | None) -> str:
+        """Extracts the stored file name from a video URL, ignoring any query token."""
+        if not video_url:
+            return ""
+        return str(video_url).split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+
+    def _find_video_row(self, filename: str, api_key_hash: str | None, scoped: bool) -> dict | None:
+        query = (
+            "SELECT * FROM tasks WHERE video_url IS NOT NULL "
+            "AND instr(video_url, ?) > 0"
+        )
+        params: list = [filename]
+        if scoped:
+            if api_key_hash:
+                query += " AND api_key_hash=?"
+                params.append(api_key_hash)
+            else:
+                query += " AND api_key_hash IS NULL"
+        query += " ORDER BY finished_at DESC, created_at DESC LIMIT 200"
+        with _LOCK:
+            rows = self._conn.execute(query, params).fetchall()
+        for row in rows:
+            if self._video_basename(row["video_url"]) == filename:
+                return dict(row)
+        return None
+
+    def get_by_video_name(self, filename: str) -> dict | None:
+        """Returns the task owning a stored video file, matched on the URL basename."""
+        return self._find_video_row(filename, None, scoped=False)
+
+    def get_by_video_name_for_client(self, filename: str, api_key_hash: str | None) -> dict | None:
+        """Returns the task owning a stored video file when it belongs to this API Key."""
+        return self._find_video_row(filename, api_key_hash, scoped=True)
+
     def recoverable_tasks(self) -> list:
         """Recovers tasks with existing conversation_id after restart without re-submitting prompt."""
         with _LOCK:

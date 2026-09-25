@@ -1,0 +1,155 @@
+schema_version: 1
+
+product:
+  name: "Dola Render Gateway"
+  slug: "dola-render-gateway"
+  description: "High-performance video generation pipeline and MCP AI Assistant Gateway."
+
+endpoints:
+  app_base_url: "http://127.0.0.1:8000"
+  auth_base_url: "http://127.0.0.1:8000"
+  api_base_url: "http://127.0.0.1:8000"
+  mcp_base_url: "http://127.0.0.1:8000"
+  mcp_path: "/mcp"
+  media_base_url: "http://127.0.0.1:8000"
+  docs_base_url: "http://127.0.0.1:8000/docs"
+  health_url: "http://127.0.0.1:8000/api/admin/settings"
+
+mcp:
+  transport: streamable-http
+  protocol_version: "2025-03-26"
+  server_id: "dola-render-gateway"
+  auth:
+    type: header
+    header: "x-api-key"
+    bearer_supported: true
+    key_prefix: "dolamcp_"
+  cors:
+    allowed_origins:
+      - "*"
+    allowed_headers:
+      - Content-Type
+      - Authorization
+      - x-api-key
+      - mcp-session-id
+      - mcp-protocol-version
+  rate_limit_per_minute: 60
+
+permissions:
+  manage_key: mcp-key:manage
+  view_usage: mcp-usage:read
+  call_tools: mcp-tools:call
+
+features:
+  - id: video_generation
+    label: Video Generation
+    description: Generate videos using Dola pool accounts with customizable prompt, ratio, and duration.
+    result_delivery: signed_url
+    tools:
+      - name: dola_create_video
+        operation: create
+        input_schema_ref: "#/schemas/dola_create_video_input"
+        output_schema_ref: "#/schemas/dola_create_video_output"
+      - name: dola_get_task_status
+        operation: read
+        input_schema_ref: "#/schemas/dola_get_task_status_input"
+        output_schema_ref: "#/schemas/dola_get_task_status_output"
+      - name: dola_list_tasks
+        operation: read
+        input_schema_ref: "#/schemas/dola_list_tasks_input"
+        output_schema_ref: "#/schemas/dola_list_tasks_output"
+      - name: dola_list_accounts
+        operation: read
+        input_schema_ref: "#/schemas/dola_list_accounts_input"
+        output_schema_ref: "#/schemas/dola_list_accounts_output"
+    usage_events:
+      requested: video_create_requested
+      success: video_create_success
+      failed: video_create_failed
+      downloaded: video_download_success
+    quota_metric: video_create_success
+
+usage:
+  enabled: true
+  timezone: Asia/Ho_Chi_Minh
+  retention_days: 90
+  dashboard_metrics:
+    - metric: tool_call_total
+      label: Lượt gọi Tool
+    - metric: video_create_success
+      label: Video thành công
+    - metric: video_create_failed
+      label: Video thất bại
+    - metric: tool_call_active
+      label: Tác vụ đang xử lý
+
+quota:
+  policies:
+    - id: daily_video_generations
+      metric: video_create_success
+      scope: workspace
+      period: day
+      limit: 100
+      consume_on: success
+      timezone: Asia/Ho_Chi_Minh
+
+result_delivery:
+  allowed_modes:
+    - inline_json
+    - asset_id
+    - signed_url
+    - server_path
+  public_default: signed_url
+  signed_url_ttl_seconds: 900
+
+schemas:
+  dola_create_video_input:
+    type: object
+    required: [prompt]
+    properties:
+      prompt:
+        type: string
+        description: Text prompt describing the video to generate.
+      ratio:
+        type: string
+        enum: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+        default: "16:9"
+        description: Aspect ratio of the video.
+      duration:
+        type: integer
+        enum: [10, 15, 30]
+        default: 10
+        description: Video duration in seconds.
+      model:
+        type: string
+        default: "seedance-2.0"
+        description: Target model.
+      reference_images:
+        type: array
+        items:
+          type: string
+        description: Optional list of image URLs to guide video generation.
+    additionalProperties: false
+
+  dola_get_task_status_input:
+    type: object
+    required: [task_id]
+    properties:
+      task_id:
+        type: string
+        description: The unique ID of the video task.
+    additionalProperties: false
+
+  dola_list_tasks_input:
+    type: object
+    properties:
+      limit:
+        type: integer
+        default: 10
+        description: Maximum number of recent tasks to return.
+    additionalProperties: false
+
+  dola_list_accounts_input:
+    type: object
+    properties: {}
+    additionalProperties: false

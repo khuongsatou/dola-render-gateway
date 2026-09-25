@@ -9,12 +9,18 @@ from dola_client import CreditError
 from video_worker_ui import (
     AccountLimitedError, CreditInsufficientError, RiskControlError, generate_video, resume_video,
 )
-from account_locks import get_account_lock, get_execution_semaphore
+from account_locks import (
+    acquire_account_execution,
+    get_account_lock,
+    get_execution_semaphore,
+    release_account_execution,
+)
 import config
 import quota_time
 
 DAILY_LIMIT = 2
 COOLDOWN_SEC = 1800  # 30-minute cooldown on risk control
+LOCK_WAIT_TIMEOUT = 5.0  # seconds to wait for a busy profile before reporting 409
 
 
 class AllAccountsLimitedError(RuntimeError):
@@ -225,11 +231,20 @@ class BrowserPool:
         """Verifies login state in headless mode and updates cache."""
         if name not in self.accounts:
             raise FileNotFoundError(f"Profile does not exist: {name}")
-        lock = get_account_lock(name)
-        if lock.locked():
-            raise RuntimeError("Account is generating video, please verify later")
         from browser import check_login_state
-        ok = await check_login_state(name)
+        # Hold the shared account slot so verification never races video generation
+        # or another inspection that mutates this profile.
+        try:
+            await asyncio.wait_for(
+                acquire_account_execution(name, self.max_concurrency),
+                timeout=LOCK_WAIT_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("Account is generating video, please verify later") from None
+        try:
+            ok = await check_login_state(name)
+        finally:
+            release_account_execution(name, self.max_concurrency)
         self._conn.execute(
             "UPDATE accounts_meta SET login_ok=?, login_checked_at=? WHERE name=?",
             (1 if ok else 0, time.time(), name),

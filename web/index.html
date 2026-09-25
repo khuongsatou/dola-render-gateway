@@ -848,7 +848,7 @@ td .prompt {
   <button class="press" data-tab="accounts" onclick="switchTab('accounts')"><i class="bi bi-people-fill"></i> Accounts</button>
   <button class="press" data-tab="tasks" onclick="switchTab('tasks')"><i class="bi bi-cpu-fill"></i> Task Queue</button>
   <button class="press" data-tab="keys" onclick="switchTab('keys')"><i class="bi bi-key-fill"></i> API Keys</button>
-  <button class="press" data-tab="canvas" onclick="switchTab('canvas')" style="color:#9AA2F2"><i class="bi bi-diagram-3-fill"></i> Workflow Studio</button>
+  <button class="press" data-tab="mcp" onclick="switchTab('mcp')" style="color:#38BDF8"><i class="bi bi-plug-fill"></i> MCP Integration</button>
 </nav>
 
 <main>
@@ -932,7 +932,7 @@ td .prompt {
         <!-- Action buttons -->
         <div class="studio-actions" style="display:flex;align-items:center;gap:8px">
           <button id="btnDolaStudioLiveJev" type="button" class="btn press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,0.3)" onclick="openLiveFlowModal()">
-            <i class="bi bi-broadcast"></i> Tạo & Xem Live Flow (Google)
+            <i class="bi bi-broadcast"></i> Tạo & Xem Live Dola (dola.com)
           </button>
           <button id="btnDolaStudioSubmit" type="button" class="btn btn-p press" onclick="submitDolaTask()">
             <i class="bi bi-send-fill"></i> Tạo Video Ngay
@@ -968,8 +968,11 @@ td .prompt {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h3 style="font-size:14px;font-weight:700">Account Management</h3>
         <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-mini press" style="background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(79,70,229,0.3)" onclick="openWorkflowStudioModal()" title="Mở Visual Workflow Studio theo Profile">
+            <i class="bi bi-diagram-3-fill"></i> Workflow Studio
+          </button>
           <button class="btn btn-mini press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,0.3)" onclick="openLiveFlowModal()">
-            <i class="bi bi-broadcast"></i> Live Flow
+            <i class="bi bi-broadcast"></i> Live Dola (dola.com)
           </button>
           <button class="btn btn-mini press" style="background:#7C3AED;color:#fff;border-color:transparent" onclick="openInspectDolaElements()">
             <i class="bi bi-crosshair"></i> Vị trí phần tử Dola
@@ -1011,22 +1014,381 @@ td .prompt {
     </div>
   </section>
 
-  <!-- TAB 5: WORKFLOW STUDIO (Interactive Flow Canvas directly connected to Real Task Pipeline) -->
-  <section id="tab-canvas" style="display:none">
-    <div class="glass" style="padding:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-        <div>
-          <h3 style="font-size:15px;font-weight:700"><i class="bi bi-diagram-3-fill" style="color:var(--primary)"></i> Visual Workflow Pipeline (Real-Time)</h3>
-          <p style="font-size:12px;color:var(--ink-2)">Trực quan hóa quy trình: Nhập Prompt -> Browser Worker Pool render video -> Xuất bản file MP4 thật.</p>
+
+
+  <!-- TAB 6: MCP INTEGRATION -->
+  <section id="tab-mcp" style="display:none">
+    <!-- Header banner -->
+    <div class="glass" style="padding:22px;margin-bottom:20px;border:1px solid rgba(56,189,248,0.25);background:linear-gradient(135deg,rgba(56,189,248,0.06) 0%,rgba(94,106,210,0.04) 100%);box-shadow:0 8px 24px rgba(0,0,0,0.14)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#0284C7,#38BDF8);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(56,189,248,0.35)">
+            <i class="bi bi-plug-fill"></i>
+          </span>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#38BDF8;background:rgba(56,189,248,0.12);padding:2px 8px;border-radius:99px;border:1px solid rgba(56,189,248,0.25)">
+                STREAMABLE HTTP · PROTOCOL 2025-03-26
+              </span>
+              <span style="font-size:11px;color:var(--success);display:inline-flex;align-items:center;gap:4px">
+                <i class="bi bi-check-circle-fill"></i> Online
+              </span>
+            </div>
+            <h2 style="font-size:18px;font-weight:700;margin-top:2px;letter-spacing:-0.2px">MCP Integration & API Keys</h2>
+            <p style="font-size:12px;color:var(--ink-2);margin-top:2px">
+              Cấp API key bảo mật và liên kết nhanh các AI Assistant (Claude, Cursor, ChatGPT, VS Code, Codex) với Dola Video Render Pipeline.
+            </p>
+          </div>
         </div>
         <div style="display:flex;gap:8px">
-          <button id="btnRunRealWorkflow" class="btn btn-mini btn-p press" onclick="runRealWorkflow()"><i class="bi bi-play-fill"></i> Chạy Test Workflow Thật</button>
-          <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask()"><i class="bi bi-arrow-counterclockwise"></i> Đồng Bộ Task Mới Nhất</button>
+          <button class="btn btn-mini press" onclick="loadMcp()"><i class="bi bi-arrow-repeat"></i> Làm Mới</button>
+          <button class="btn btn-mini btn-p press" onclick="openCreateMcpKey()"><i class="bi bi-plus-lg"></i> Tạo Managed Key</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Public Endpoint & KPI Stats -->
+    <!-- Public Endpoint Card -->
+    <div class="glass" style="padding:18px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.5px">Public MCP Endpoint</span>
+        <span style="font-size:11px;color:var(--ink-2)">Header: <code style="color:var(--primary-dark)">x-api-key</code> hoặc <code style="color:var(--primary-dark)">Authorization: Bearer</code></span>
+      </div>
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <code id="mcpEndpointVal" style="font-family:ui-monospace,monospace;font-size:12.5px;color:#38BDF8;word-break:break-all">http://127.0.0.1:8000/mcp</code>
+        <button class="btn btn-mini press" onclick="copyMcpEndpoint()" title="Sao chép Endpoint"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:16px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap">
+        <span><i class="bi bi-shield-check" style="color:var(--success)"></i> CSPRNG 256-bit Key</span>
+        <span><i class="bi bi-activity" style="color:var(--info)"></i> Rate limit: 60/phút</span>
+        <span><i class="bi bi-hdd-stack" style="color:var(--primary)"></i> 5 Tools đã đăng ký</span>
+        <span><i class="bi bi-cloud-arrow-down" style="color:#A855F7"></i> Download telemetry tracking</span>
+      </div>
+    </div>
+
+    <!-- MCP USAGE & QUOTA DASHBOARD -->
+    <div class="glass" style="padding:22px;margin-bottom:20px;border:1px solid rgba(94,106,210,0.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(94,106,210,0.18);color:var(--primary-dark)">
+              <i class="bi bi-bar-chart-line-fill"></i>
+            </span>
+            <h3 style="font-size:15px;font-weight:700">Dashboard Thống Kê Sử Dụng MCP & Quota</h3>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin-top:2px">
+            Tổng hợp thời gian thực lượt gọi, số lần tạo, tải về, thành công, thất bại và hạn mức quota tối đa / ngày.
+          </p>
+        </div>
+        <!-- Period Filter -->
+        <div style="display:flex;align-items:center;gap:4px;background:var(--surface-2);padding:3px;border-radius:10px;border:1px solid var(--line)">
+          <button class="btn btn-mini btn-p press" data-mcp-period="today" onclick="changeMcpPeriod('today')">Hôm nay</button>
+          <button class="btn btn-mini press" data-mcp-period="7d" onclick="changeMcpPeriod('7d')">7 ngày</button>
+          <button class="btn btn-mini press" data-mcp-period="30d" onclick="changeMcpPeriod('30d')">30 ngày</button>
+          <button class="btn btn-mini press" data-mcp-period="all" onclick="changeMcpPeriod('all')">Tất cả</button>
         </div>
       </div>
 
-      <!-- Canvas Area -->
-      <div class="canvas-container" id="canvasArea">
+      <!-- 5 Primary Metric KPI Cards -->
+      <div class="cards" style="grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:12px;margin-bottom:16px">
+        <!-- 1. Số lần tạo -->
+        <div class="glass stat-card" style="padding:14px;--accent-glow:rgba(56,189,248,0.25)">
+          <div class="l" style="font-size:11.5px;color:var(--ink-2)"><i class="bi bi-camera-reels-fill" style="color:#38BDF8"></i> Số Lần Tạo Video</div>
+          <div class="v" id="mcpStatCreateReq" style="font-size:22px;color:#38BDF8">0</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px">Yêu cầu tạo gửi qua MCP</div>
+        </div>
+
+        <!-- 2. Số lần tải về -->
+        <div class="glass stat-card" style="padding:14px;--accent-glow:rgba(168,85,247,0.25)">
+          <div class="l" style="font-size:11.5px;color:var(--ink-2)"><i class="bi bi-cloud-arrow-down-fill" style="color:#A855F7"></i> Số Lần Tải Về</div>
+          <div class="v" id="mcpStatDownload" style="font-size:22px;color:#A855F7">0</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px">Lượt download file video MP4</div>
+        </div>
+
+        <!-- 3. Số lần tạo thành công -->
+        <div class="glass stat-card" style="padding:14px;--accent-glow:rgba(52,199,89,0.25)">
+          <div class="l" style="font-size:11.5px;color:var(--ink-2)"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i> Tạo Thành Công</div>
+          <div class="v" id="mcpStatCreateSuccess" style="font-size:22px;color:var(--success)">0</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px">Video render hoàn tất</div>
+        </div>
+
+        <!-- 4. Số lần tạo thất bại -->
+        <div class="glass stat-card" style="padding:14px;--accent-glow:rgba(235,87,87,0.25)">
+          <div class="l" style="font-size:11.5px;color:var(--ink-2)"><i class="bi bi-x-circle-fill" style="color:var(--danger)"></i> Tạo Thất Bại</div>
+          <div class="v" id="mcpStatCreateFailed" style="font-size:22px;color:var(--danger)">0</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px">Lỗi quota hoặc tham số</div>
+        </div>
+
+        <!-- 5. Giới hạn tối đa số lần tạo / 1 ngày -->
+        <div class="glass stat-card" style="padding:14px;--accent-glow:rgba(255,149,0,0.25)">
+          <div class="l" style="font-size:11.5px;color:var(--ink-2)"><i class="bi bi-speedometer2" style="color:var(--warning)"></i> Giới Hạn / 1 Ngày</div>
+          <div class="v" id="mcpStatDailyLimit" style="font-size:22px;color:var(--warning)">100</div>
+          <div id="mcpStatDailyRemHint" style="font-size:10.5px;color:var(--ink-3);margin-top:2px">Còn lại: 100 lượt hôm nay</div>
+        </div>
+      </div>
+
+      <!-- Quota Progress Bar Card -->
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;font-weight:700;color:var(--ink)">Tiến Độ Hạn Mức Quota Hôm Nay</span>
+            <span id="mcpQuotaBadge" style="font-size:10.5px;padding:2px 8px;border-radius:99px;font-weight:600;background:var(--success-light);color:var(--success)">Bình thường</span>
+          </div>
+          <div style="font-size:11.5px;color:var(--ink-2)">
+            Đã dùng: <strong id="mcpQuotaUsedVal" style="color:var(--ink)">0</strong> / <span id="mcpQuotaMaxVal">100</span> video (Còn lại <strong id="mcpQuotaRemainingVal" style="color:var(--warning)">100</strong>) · Reset: <span style="font-family:monospace;color:var(--ink-3)">00:00 (Asia/Ho_Chi_Minh)</span>
+          </div>
+        </div>
+        <div style="width:100%;height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden">
+          <div id="mcpQuotaProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#34C759,#30D158);border-radius:99px;transition:width 0.4s var(--spring)"></div>
+        </div>
+      </div>
+
+      <!-- Per-Key Consumption Breakdown Table -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <i class="bi bi-pie-chart-fill" style="color:var(--primary)"></i> Chi Tiết Sử Dụng Theo Từng Khóa API (Per-Key Usage Breakdown):
+        </div>
+        <div id="mcpKeyUsageTableContainer"></div>
+      </div>
+    </div>
+
+    <!-- One-Time Secret Alert (Hiển thị khi vừa tạo key mới) -->
+    <div id="mcpOneTimeSecretCard" class="glass" style="display:none;padding:18px;margin-bottom:20px;border:1px solid rgba(255,149,0,0.4);background:rgba(255,149,0,0.06);box-shadow:0 8px 24px rgba(255,149,0,0.1)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:16px;color:var(--warning)"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            <strong style="font-size:13.5px;color:var(--warning)">Khóa MCP API Key Mới — Chỉ Hiển Thị Một Lần Duy Nhất</strong>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin:4px 0 10px 0">
+            Hãy sao chép và lưu trữ ngay vào cấu hình AI Assistant của bạn. Hệ thống chỉ lưu mã băm SHA-256 an toàn và sẽ không thể hiển thị lại secret này!
+          </p>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px dashed rgba(255,149,0,0.4);border-radius:8px;padding:10px 14px">
+            <code id="mcpOneTimeSecretDisplay" style="font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:var(--warning);word-break:break-all"></code>
+            <button class="btn btn-mini btn-p press" onclick="copyMcpOneTimeSecret()"><i class="bi bi-clipboard"></i> Sao Chép Khóa</button>
+          </div>
+        </div>
+        <button class="btn btn-mini press" onclick="hideMcpOneTimeSecret()"><i class="bi bi-x-lg"></i> Đã Lưu & Đóng</button>
+      </div>
+    </div>
+
+    <!-- API Keys Management Table -->
+    <div class="glass" style="padding:20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="font-size:14px;font-weight:700"><i class="bi bi-key-fill" style="color:#38BDF8"></i> Danh Sách Managed MCP API Keys</h3>
+          <p style="font-size:12px;color:var(--ink-3)">Các khóa riêng biệt cấp cho từng AI Client (Claude, Cursor, Codex, ChatGPT) với tiền tố nhận diện <code style="color:var(--primary-dark)">dolamcp_</code>.</p>
+        </div>
+        <button class="btn btn-mini btn-p press" onclick="openCreateMcpKey()"><i class="bi bi-plus-lg"></i> Tạo Key Mới</button>
+      </div>
+      <div id="mcpKeysTableContainer"></div>
+    </div>
+
+    <!-- Setup Guide: Multi-client Interactive Config Generator -->
+    <div class="glass" style="padding:20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="font-size:14px;font-weight:700"><i class="bi bi-cpu-fill" style="color:var(--primary)"></i> Hướng Dẫn Liên Kết (Setup Guide)</h3>
+          <p style="font-size:12px;color:var(--ink-3)">Chọn ứng dụng AI bạn sử dụng để nhận đoạn mã JSON/CLI tự động nhúng API key đang chọn.</p>
+        </div>
+        <button class="btn btn-mini btn-p press" onclick="copyMcpClientSnippet()"><i class="bi bi-clipboard"></i> Sao Chép Cấu Hình</button>
+      </div>
+
+      <!-- Client Selection Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="mcpClientTabs">
+        <button class="btn btn-mini btn-p press" data-client="claude" onclick="selectMcpClient('claude')"><i class="bi bi-stars"></i> Claude Desktop</button>
+        <button class="btn btn-mini press" data-client="cursor" onclick="selectMcpClient('cursor')"><i class="bi bi-cursor-fill"></i> Cursor IDE</button>
+        <button class="btn btn-mini press" data-client="chatgpt" onclick="selectMcpClient('chatgpt')"><i class="bi bi-chat-square-dots-fill"></i> ChatGPT</button>
+        <button class="btn btn-mini press" data-client="vscode" onclick="selectMcpClient('vscode')"><i class="bi bi-terminal-fill"></i> VS Code / Cline</button>
+        <button class="btn btn-mini press" data-client="codex" onclick="selectMcpClient('codex')"><i class="bi bi-command"></i> Codex CLI</button>
+      </div>
+
+      <!-- Setup Snippet Container -->
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span id="mcpSnippetTitle" style="font-size:12px;font-weight:700;color:var(--ink)">Claude Desktop Configuration</span>
+          <span id="mcpSnippetHint" style="font-size:11px;color:var(--ink-3);font-family:ui-monospace,monospace">~/Library/Application Support/Claude/claude_desktop_config.json</span>
+        </div>
+        <pre id="mcpSnippetCode" style="margin:0;font-family:ui-monospace,monospace;font-size:12px;line-height:1.55;color:#E2E8F0;background:#09090C;border:1px solid var(--line-2);border-radius:8px;padding:14px;overflow-x:auto;max-height:280px"></pre>
+      </div>
+    </div>
+
+    <!-- MCP Tool Catalog & Live Playground -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <!-- Tool Catalog -->
+      <div class="glass" style="padding:20px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:8px"><i class="bi bi-list-check" style="color:var(--success)"></i> Danh Mục MCP Tools</h3>
+        <p style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Các công cụ Dola cung cấp cho AI Assistant gọi tự động:</p>
+        
+        <div style="display:flex;flex-direction:column;gap:10px" id="mcpCatalogList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- MCP Live Playground -->
+      <div class="glass" style="padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <h3 style="font-size:14px;font-weight:700"><i class="bi bi-play-circle-fill" style="color:var(--warning)"></i> MCP Playground (Thử Nghiệm)</h3>
+          <span style="font-size:11px;color:var(--ink-3)">Gọi JSON-RPC trực tiếp</span>
+        </div>
+        <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px">Kiểm tra kết nối và kết quả phản hồi của MCP Gateway.</p>
+
+        <label style="font-size:12px;color:var(--ink-2);margin-bottom:4px;display:block">Chọn Tool:</label>
+        <select id="mcpPlaygroundTool" onchange="onPlaygroundToolChange()" style="width:100%;margin-bottom:10px">
+          <option value="dola_list_accounts">dola_list_accounts (Xem tài khoản pool)</option>
+          <option value="dola_list_tasks">dola_list_tasks (Xem danh sách task)</option>
+          <option value="dola_get_task_status">dola_get_task_status (Xem chi tiết task)</option>
+          <option value="dola_create_video">dola_create_video (Tạo video mới)</option>
+        </select>
+
+        <label style="font-size:12px;color:var(--ink-2);margin-bottom:4px;display:block">Arguments (JSON):</label>
+        <textarea id="mcpPlaygroundArgs" rows="3" style="width:100%;font-family:monospace;font-size:12px;margin-bottom:12px">{}</textarea>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <button class="btn btn-p press" id="btnRunMcpPlayground" onclick="runMcpPlayground()"><i class="bi bi-send-fill"></i> Gửi Yêu Cầu MCP</button>
+          <span id="mcpPlaygroundTime" style="font-size:11px;color:var(--ink-3)"></span>
+        </div>
+
+        <label style="font-size:12px;color:var(--ink-2);margin-bottom:4px;display:block">Kết quả phản hồi (JSON-RPC 2.0 Response):</label>
+        <pre id="mcpPlaygroundOutput" style="margin:0;font-family:monospace;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto">Sẵn sàng chạy thử nghiệm...</pre>
+      </div>
+    </div>
+
+    <!-- Recent MCP Activity Log -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <h3 style="font-size:14px;font-weight:700"><i class="bi bi-clock-history" style="color:var(--primary)"></i> Nhật Ký Hoạt Động (Recent Activity)</h3>
+          <p style="font-size:12px;color:var(--ink-3)">Telemetry được ghi tự động tại MCP Gateway sau mỗi lượt gọi tool từ AI Assistant.</p>
+        </div>
+      </div>
+      <div id="mcpActivityTableContainer"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Login Modal -->
+<div id="loginMask" class="mask" style="display:none">
+  <div class="dialog-box">
+    <div style="text-align:center;margin-bottom:18px">
+      <div class="brand-icon" style="margin:0 auto 12px;width:48px;height:48px;font-size:24px"><i class="bi bi-shield-lock-fill"></i></div>
+      <h2>Admin Dashboard Login</h2>
+      <p style="font-size:12px;color:var(--ink-2)">Nhập mật khẩu quản trị viên để tiếp tục</p>
+    </div>
+    <input id="loginKey" type="password" placeholder="Admin Password" onkeydown="if(event.key==='Enter')submitLogin()">
+    <div id="loginErr" style="color:var(--danger);font-size:12px;margin:8px 0;display:none"><i class="bi bi-exclamation-triangle-fill"></i> Mật khẩu không chính xác</div>
+    <button class="btn btn-p press" style="width:100%;height:40px;margin-top:10px" onclick="submitLogin()">Đăng Nhập</button>
+  </div>
+</div>
+
+<!-- Generic Dialog -->
+<div id="dlg" class="mask" style="display:none">
+  <div class="dialog-box" id="dlgBox"></div>
+</div>
+
+<!-- Video Preview Modal with Resolution & FPS Inspector -->
+<div id="videoModal" class="mask" style="display:none">
+  <div class="dialog-box" style="width:680px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <i class="bi bi-play-circle-fill text-primary" style="font-size:20px"></i>
+        <h2 style="margin:0">Video Player Inspector</h2>
+      </div>
+      <span id="modalVidMeta" class="badge b-blue">Đang nạp…</span>
+    </div>
+    <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:16px">
+      <video id="videoEl" controls autoplay playsinline style="width:100%;display:block;max-height:480px" onloadedmetadata="onVideoLoadedMeta(event)"></video>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <a id="videoDownloadBtn" href="#" target="_blank" class="btn btn-mini press" download><i class="bi bi-download"></i> Tải MP4 về máy</a>
+      <button class="btn btn-mini press" onclick="closeVideo()">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW STUDIO MODAL (Bound to Chrome Profile) -->
+<div id="workflowStudioModal" class="mask" style="display:none" onclick="if(event.target===this)closeWorkflowStudioModal()">
+  <div class="dialog-box" style="width:1160px;max-width:96vw;max-height:92vh;overflow-y:auto;overflow-x:hidden;padding:24px;box-sizing:border-box">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:14px;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(79,70,229,0.35)">
+          <i class="bi bi-diagram-3-fill"></i>
+        </span>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h2 style="margin:0;font-size:17px;font-weight:700">Workflow Studio</h2>
+            <span id="wfModalProfileBadge" class="badge b-purple" style="font-size:11px;font-weight:600">Profile: —</span>
+            <span id="wfModalProfileStatus" class="badge b-green" style="font-size:10px">Session Active</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin-top:2px">
+            Visual Workflow Pipeline kết nối trực tiếp với Chrome Profile <strong id="wfModalCurrentAccountText" style="color:var(--ink)">—</strong>
+          </p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px">
+          <label style="font-size:11px;color:var(--ink-2);white-space:nowrap;margin:0;text-transform:none">Đổi Profile:</label>
+          <select id="wfModalAccountSelect" onchange="onWorkflowStudioAccountChange(this.value)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px;min-width:140px;height:32px">
+          </select>
+        </div>
+        <button class="btn btn-mini press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent" onclick="openLiveJevFromStudio()" title="Mở Live Dola cho profile này">
+          <i class="bi bi-broadcast"></i> Live Dola
+        </button>
+        <button class="btn btn-mini press" onclick="closeWorkflowStudioModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+
+    <!-- Quick Run & Parameters Bar -->
+    <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px">
+          <i class="bi bi-sliders2-vertical text-primary"></i> Cấu hình Test Workflow cho Profile: <code id="wfParamAccountName" style="color:var(--primary-dark)">—</code>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-mini press" onclick="setWfPromptSample('drone')"><i class="bi bi-magic"></i> Mẫu Drone 4K</button>
+          <button class="btn btn-mini press" onclick="setWfPromptSample('cyberpunk')"><i class="bi bi-magic"></i> Mẫu Cyberpunk</button>
+          <button class="btn btn-mini press" onclick="setWfPromptSample('anime')"><i class="bi bi-magic"></i> Mẫu Anime</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 140px 110px 110px auto;gap:10px;align-items:end">
+        <div>
+          <label style="font-size:10.5px;font-weight:600;color:var(--ink-2);margin:0 0 4px;text-transform:uppercase;display:block">Nội dung Prompt</label>
+          <input id="wfStudioPrompt" type="text" placeholder="Nhập prompt mô tả cảnh video bạn muốn profile này tạo..." value="A cinematic 4k drone shot of misty mountain peaks at golden hour, hyper-realistic, dramatic lighting" style="height:36px;font-size:12px">
+        </div>
+        <div>
+          <label style="font-size:10.5px;font-weight:600;color:var(--ink-2);margin:0 0 4px;text-transform:uppercase;display:block">Model</label>
+          <select id="wfStudioModel" style="height:36px;font-size:12px">
+            <option value="seedance-2.0" selected>Seedance 2.0</option>
+            <option value="seedance-1.5">Seedance 1.5</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10.5px;font-weight:600;color:var(--ink-2);margin:0 0 4px;text-transform:uppercase;display:block">Tỉ lệ khung</label>
+          <select id="wfStudioRatio" style="height:36px;font-size:12px">
+            <option value="16:9" selected>16:9 Ngang</option>
+            <option value="9:16">9:16 Dọc</option>
+            <option value="1:1">1:1 Vuông</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10.5px;font-weight:600;color:var(--ink-2);margin:0 0 4px;text-transform:uppercase;display:block">Thời lượng</label>
+          <select id="wfStudioDuration" style="height:36px;font-size:12px">
+            <option value="10" selected>10 giây</option>
+            <option value="15">15 giây</option>
+          </select>
+        </div>
+        <div>
+          <button id="btnRunWfStudio" class="btn press" style="height:36px;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;border-color:transparent;font-weight:600;white-space:nowrap;padding:0 16px" onclick="runWorkflowStudioForCurrentProfile()">
+            <i class="bi bi-play-fill"></i> Chạy Workflow Thật
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div style="overflow-x:auto;padding-bottom:6px;margin-bottom:16px">
+      <div class="canvas-container" id="canvasArea" style="min-width:1040px;height:520px">
         <div class="canvas-grid"></div>
         
         <!-- SVG Connection Lines -->
@@ -1069,7 +1431,7 @@ td .prompt {
             </div>
           </div>
           <div style="padding:0 14px 12px;font-size:11.5px;color:var(--ink-2)" id="node2Detail">
-            <div>Tài khoản: <strong id="node2Account" style="color:var(--ink)">Auto Pool</strong></div>
+            <div>Tài khoản Profile: <strong id="node2Account" style="color:var(--ink)">—</strong></div>
             <div style="margin-top:4px">Task ID: <code id="node2TaskId" style="color:var(--primary-dark)">—</code></div>
             <div style="margin-top:4px">Tiến độ: <span id="node2ProgressText" class="badge b-gray">Chờ lệnh</span></div>
           </div>
@@ -1107,49 +1469,20 @@ td .prompt {
         <div class="canvas-toolbar">
           <span style="font-size:11px;font-weight:700;color:var(--primary-dark)" id="canvasToolbarTitle">Pipeline Live Sync</span>
           <div style="width:1px;height:14px;background:var(--line)"></div>
-          <button class="btn btn-mini press" onclick="switchTab('tasks')"><i class="bi bi-list-task"></i> Xem Task Queue</button>
-          <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask()"><i class="bi bi-arrow-repeat"></i> Cập Nhật</button>
+          <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask(null, currentWorkflowProfile)"><i class="bi bi-arrow-repeat"></i> Cập Nhật</button>
         </div>
       </div>
     </div>
-  </section>
-</main>
 
-<!-- Login Modal -->
-<div id="loginMask" class="mask" style="display:none">
-  <div class="dialog-box">
-    <div style="text-align:center;margin-bottom:18px">
-      <div class="brand-icon" style="margin:0 auto 12px;width:48px;height:48px;font-size:24px"><i class="bi bi-shield-lock-fill"></i></div>
-      <h2>Admin Dashboard Login</h2>
-      <p style="font-size:12px;color:var(--ink-2)">Nhập mật khẩu quản trị viên để tiếp tục</p>
-    </div>
-    <input id="loginKey" type="password" placeholder="Admin Password" onkeydown="if(event.key==='Enter')submitLogin()">
-    <div id="loginErr" style="color:var(--danger);font-size:12px;margin:8px 0;display:none"><i class="bi bi-exclamation-triangle-fill"></i> Mật khẩu không chính xác</div>
-    <button class="btn btn-p press" style="width:100%;height:40px;margin-top:10px" onclick="submitLogin()">Đăng Nhập</button>
-  </div>
-</div>
-
-<!-- Generic Dialog -->
-<div id="dlg" class="mask" style="display:none">
-  <div class="dialog-box" id="dlgBox"></div>
-</div>
-
-<!-- Video Preview Modal with Resolution & FPS Inspector -->
-<div id="videoModal" class="mask" style="display:none">
-  <div class="dialog-box" style="width:680px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <i class="bi bi-play-circle-fill text-primary" style="font-size:20px"></i>
-        <h2 style="margin:0">Video Player Inspector</h2>
+    <!-- Profile Recent Tasks Section -->
+    <div style="background:var(--surface-card);border:1px solid var(--line);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+          <i class="bi bi-clock-history text-primary"></i> Lịch Sử Render của Profile <span id="wfProfileHistoryName" style="color:var(--primary-dark)">—</span>
+        </div>
+        <span style="font-size:11px;color:var(--ink-2)">Click vào task để xem lại cấu hình & phát video trên Canvas</span>
       </div>
-      <span id="modalVidMeta" class="badge b-blue">Đang nạp…</span>
-    </div>
-    <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:16px">
-      <video id="videoEl" controls autoplay playsinline style="width:100%;display:block;max-height:480px" onloadedmetadata="onVideoLoadedMeta(event)"></video>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <a id="videoDownloadBtn" href="#" target="_blank" class="btn btn-mini press" download><i class="bi bi-download"></i> Tải MP4 về máy</a>
-      <button class="btn btn-mini press" onclick="closeVideo()">Đóng</button>
+      <div id="wfProfileTasksList"></div>
     </div>
   </div>
 </div>
@@ -1240,9 +1573,13 @@ async function submitLogin() {
 function logout() { adminKey = ''; localStorage.removeItem(LS_KEY); showLogin(); }
 
 function switchTab(t) {
+  if (t === 'canvas') {
+    openWorkflowStudioModal();
+    return;
+  }
   curTab = t;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['dash', 'accounts', 'tasks', 'keys', 'canvas'].forEach(x => {
+  ['dash', 'accounts', 'tasks', 'keys', 'mcp'].forEach(x => {
     const el = q('#tab-' + x);
     if(el) el.style.display = (x === t) ? 'block' : 'none';
   });
@@ -1258,7 +1595,7 @@ async function refresh() {
     else if (curTab === 'accounts') await loadAccounts();
     else if (curTab === 'tasks') await loadTasks();
     else if (curTab === 'keys') await loadKeys();
-    else if (curTab === 'canvas') await syncCanvasWithLatestTask();
+    else if (curTab === 'mcp') await loadMcp();
   } catch(e) {
     if (e.message !== 'unauthorized') { console.error(e); }
   }
@@ -1496,7 +1833,8 @@ async function loadAccounts() {
       `<b style="font-family:monospace">${x.used_today}</b> / ${x.limit}`,
       fmt(x.last_used_at),
       fmt(x.created_at),
-      `<button class="btn btn-mini press" style="margin-right:6px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(124,58,237,0.25)" onclick="openLiveJevModal('${x.name}')" title="Xem Jev thao tác trực tiếp"><i class="bi bi-broadcast"></i> Live Jev</button><button class="btn btn-mini press" style="margin-right:6px" onclick="verify('${x.name}', this)"><i class="bi bi-shield-check"></i> Verify</button><button class="btn btn-mini btn-danger press" onclick="delAccount('${x.name}')"><i class="bi bi-trash"></i> Xóa</button>`
+      `<button class="btn btn-mini press" style="margin-right:6px;background:linear-gradient(135deg,#4F46E5,#6366F1);color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(79,70,229,0.25)" data-account="${esc(x.name)}" onclick="openWorkflowStudioModal(this.dataset.account)" title="Mở Workflow Studio theo profile ${esc(x.name)}"><i class="bi bi-diagram-3-fill"></i> Workflow Studio</button>` +
+      `<button class="btn btn-mini press" style="margin-right:6px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(124,58,237,0.25)" data-account="${esc(x.name)}" onclick="openLiveJevModal(this.dataset.account)" title="Xem Jev thao tác trực tiếp"><i class="bi bi-broadcast"></i> Live Jev</button><button class="btn btn-mini press" style="margin-right:6px" data-account="${esc(x.name)}" onclick="verify(this.dataset.account, this)"><i class="bi bi-shield-check"></i> Verify</button><button class="btn btn-mini btn-danger press" data-account="${esc(x.name)}" onclick="delAccount(this.dataset.account)"><i class="bi bi-trash"></i> Xóa</button>`
     ];
   });
   q('#accountsTable').innerHTML = table(['Account ID', 'Google Email', 'Trạng Thái', 'Dispatch', 'Ẩn Danh', 'Hôm Nay', 'Lần Dùng Cuối', 'Ngày Tạo', 'Thao Tác'], rows);
@@ -1569,12 +1907,12 @@ async function loadTasks() {
     `<span style="font-family:monospace;font-size:11.5px;color:var(--primary-dark)">${t.id.replace('video_', '').slice(0, 10)}</span>`,
     `<span class="prompt" title="${esc(t.prompt || '')}">${esc(t.prompt || '')}</span>`,
     t.account ? `<strong style="font-family:monospace">${esc(t.account)}</strong>` : '-',
-    t.api_key_name || '—',
+    esc(t.api_key_name || '—'),
     `<span class="badge b-blue">${(t.duration || 10)}s</span>`,
     sb[t.status] || `<span class="badge b-gray">${esc(t.status)}</span>`,
     fmt(t.created_at),
     t.video_url
-      ? `<button class="btn btn-mini press" onclick="playVideo('${esc(t.video_url)}')"><i class="bi bi-play-fill"></i> Xem Video</button>`
+      ? `<button class="btn btn-mini press" data-video-url="${esc(t.video_url)}" onclick="playVideo(this.dataset.videoUrl)"><i class="bi bi-play-fill"></i> Xem Video</button>`
       : (t.status === 'failed' ? `<span style="color:var(--danger);font-size:11px" title="${esc(t.error || '')}">⚠ Lỗi: ${esc((t.error || '').slice(0, 24))}</span>` : '—')
   ]);
   q('#tasksTable').innerHTML = table(['Task ID', 'Prompt Nội Dung', 'Account', 'Client Key', 'Độ Dài', 'Trạng Thái', 'Thời Gian Tạo', 'Xem Kết Quả'], rows);
@@ -1604,7 +1942,7 @@ async function loadKeys() {
   const mask = k => 'sk-' + k.slice(3, 9) + '…' + k.slice(-4);
   const rows = r.keys.map(k => [
     `<span style="font-family:monospace;color:var(--primary-dark)">${mask(k.key)}</span>`,
-    k.name || '—',
+    esc(k.name || '—'),
     (k.allowed_durations || []).map(d => `<span class="badge b-blue">${d}s</span>`).join(' '),
     (k.daily_limit ? `${k.today_total} / ${k.daily_limit}` : `${k.today_total} / ∞`),
     (k.concurrency_limit ? `${k.today_active} / ${k.concurrency_limit}` : `${k.today_active} / ∞`),
@@ -1712,51 +2050,412 @@ function showDlgWide(html) {
   show('dlg');
 }
 
-/* Chrome Profiles Scan & Inspect Elements Modals (Preserved from original) */
+/* Chrome Profiles Scan & Inspect Elements Modals */
 let scannedProfilesData = [];
+let scanProfilesState = {
+  search: '',
+  statusFilter: 'all', // 'all', 'unimported', 'imported', 'has_email'
+  page: 1,
+  pageSize: 25,
+  selectedDirs: new Set()
+};
+
 async function openScanProfiles() {
-  showDlgWide(`<h2><i class="bi bi-search text-primary"></i> Quét Chrome Profiles (macOS)</h2>
-    <div style="text-align:center;padding:40px;color:var(--ink-2)"><i class="bi bi-arrow-repeat animate-spin" style="font-size:24px"></i><br>Đang đọc Local State và trích xuất các Google Profile trên Mac...</div>`);
+  q('#dlgBox').style.width = '880px';
+  q('#dlgBox').style.maxWidth = '95vw';
+  showDlgWide(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(10,132,255,0.15);color:#0A84FF;font-size:16px"><i class="bi bi-search"></i></span>
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:700">Quét Chrome Profiles (macOS)</h2>
+          <div style="font-size:12px;color:var(--ink-2)">Đang đọc Local State và trích xuất các Google Profile trên Mac...</div>
+        </div>
+      </div>
+      <button class="btn btn-mini press" onclick="hide('dlg')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div style="text-align:center;padding:48px 0;color:var(--ink-2)">
+      <i class="bi bi-arrow-repeat animate-spin" style="font-size:28px;color:#0A84FF"></i>
+      <div style="margin-top:12px;font-size:13px">Đang quét thư mục Chrome trên máy...</div>
+    </div>
+  `);
   try {
     const r = await api('/api/admin/chrome-profiles');
     scannedProfilesData = r.profiles || [];
-    renderScanProfilesModal(scannedProfilesData);
+    scanProfilesState.page = 1;
+    scanProfilesState.selectedDirs.clear();
+    renderScanProfilesModal();
   } catch(e) {
-    showDlgWide(`<h2>Quét Chrome Profiles</h2><div style="color:var(--danger);padding:20px 0">${esc(e.message)}</div><div style="text-align:right"><button class="btn" onclick="hide('dlg')">Đóng</button></div>`);
+    showDlgWide(`<h2>Quét Chrome Profiles</h2><div style="color:var(--danger);padding:20px 0">${esc(e.message)}</div><div style="text-align:right"><button class="btn press" onclick="hide('dlg')">Đóng</button></div>`);
   }
 }
-function renderScanProfilesModal(profiles) {
-  const total = profiles.length;
-  const imported = profiles.filter(p => p.is_imported).length;
+
+function getFilteredScannedProfiles() {
+  let list = scannedProfilesData;
+  const qStr = scanProfilesState.search.trim().toLowerCase();
+  if (qStr) {
+    list = list.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const email = (p.email || '').toLowerCase();
+      const dir = (p.directory || '').toLowerCase();
+      const imp = (p.imported_name || '').toLowerCase();
+      return name.includes(qStr) || email.includes(qStr) || dir.includes(qStr) || imp.includes(qStr);
+    });
+  }
+  if (scanProfilesState.statusFilter === 'unimported') {
+    list = list.filter(p => !p.is_imported);
+  } else if (scanProfilesState.statusFilter === 'imported') {
+    list = list.filter(p => p.is_imported);
+  } else if (scanProfilesState.statusFilter === 'has_email') {
+    list = list.filter(p => !!p.email);
+  }
+  return list;
+}
+
+function renderScanProfilesModal() {
+  q('#dlgBox').style.width = '880px';
+  q('#dlgBox').style.maxWidth = '95vw';
+
+  const total = scannedProfilesData.length;
+  const imported = scannedProfilesData.filter(p => p.is_imported).length;
+  const unimported = total - imported;
+  const hasEmail = scannedProfilesData.filter(p => !!p.email).length;
+
   showDlgWide(`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <h2 style="margin:0"><i class="bi bi-search text-primary"></i> Quét Chrome Profiles (${total} tìm thấy)</h2>
-      <span style="font-size:12px;color:var(--primary-dark)">${imported} đã nạp vào Dola</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(10,132,255,0.15);color:#0A84FF;font-size:16px"><i class="bi bi-search"></i></span>
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:700" id="scanModalHeaderTitle">Quét Chrome Profiles (${total} tìm thấy)</h2>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px">
+            <span class="badge b-blue" id="scanBadgeTotal">Tổng: ${total}</span>
+            <span class="badge b-green" id="scanBadgeImported">Đã nạp: ${imported}</span>
+            <span class="badge b-gray" id="scanBadgeUnimported">Chưa nạp: ${unimported}</span>
+            <span id="scanBadgeFiltered" class="badge b-orange" style="display:none"></span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-mini press" onclick="openScanProfiles()" title="Quét lại từ đầu"><i class="bi bi-arrow-clockwise"></i> Quét lại</button>
+        <button class="btn btn-mini press" onclick="hide('dlg')"><i class="bi bi-x-lg"></i></button>
+      </div>
     </div>
-    <div id="scanListContainer" style="max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+
+    <!-- Search & Filter Controls Toolbar -->
+    <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between">
+      <div style="position:relative;flex:1;min-width:220px;max-width:400px">
+        <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:12px;pointer-events:none"></i>
+        <input type="text" id="scanSearchInput" value="${esc(scanProfilesState.search)}" placeholder="Tìm kiếm theo tên, email, Profile dir..." oninput="onScanSearchInput(this.value)" style="height:32px;padding-left:30px;padding-right:28px;border-radius:8px;font-size:12.5px;width:100%">
+        <button id="scanSearchClear" onclick="clearScanSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink-3);cursor:pointer;display:${scanProfilesState.search ? 'inline-block' : 'none'};padding:2px;font-size:14px" title="Xóa tìm kiếm">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select id="scanStatusSelect" onchange="onScanFilterChange(this.value)" style="height:32px;padding:0 8px;border-radius:8px;font-size:12px;width:auto">
+          <option value="all" ${scanProfilesState.statusFilter === 'all' ? 'selected' : ''}>Tất cả trạng thái (${total})</option>
+          <option value="unimported" ${scanProfilesState.statusFilter === 'unimported' ? 'selected' : ''}>Chưa nạp (${unimported})</option>
+          <option value="imported" ${scanProfilesState.statusFilter === 'imported' ? 'selected' : ''}>Đã nạp (${imported})</option>
+          <option value="has_email" ${scanProfilesState.statusFilter === 'has_email' ? 'selected' : ''}>Có email Google (${hasEmail})</option>
+        </select>
+        <select id="scanPageSizeSelect" onchange="onScanPageSizeChange(this.value)" style="height:32px;padding:0 8px;border-radius:8px;font-size:12px;width:auto">
+          <option value="15" ${scanProfilesState.pageSize === 15 ? 'selected' : ''}>15 / trang</option>
+          <option value="25" ${scanProfilesState.pageSize === 25 ? 'selected' : ''}>25 / trang</option>
+          <option value="50" ${scanProfilesState.pageSize === 50 ? 'selected' : ''}>50 / trang</option>
+          <option value="100" ${scanProfilesState.pageSize === 100 ? 'selected' : ''}>100 / trang</option>
+          <option value="9999" ${scanProfilesState.pageSize === 9999 ? 'selected' : ''}>Tất cả</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Bulk Action Subbar -->
+    <div id="scanBulkBar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--ink-2);min-height:28px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:12px;text-transform:none;color:var(--ink)">
+          <input type="checkbox" id="scanSelectAllPageCb" onchange="toggleSelectAllPage(this.checked)" style="width:15px;height:15px;cursor:pointer;margin:0">
+          <span>Chọn trang này</span>
+        </label>
+        <span id="scanSelectionInfo" style="color:var(--primary-dark);font-weight:600;display:none"></span>
+      </div>
+      <div>
+        <button id="scanBulkImportBtn" class="btn btn-mini btn-p press" style="display:none" onclick="bulkImportSelectedProfiles()">
+          <i class="bi bi-box-arrow-in-down"></i> Nạp hàng loạt (<span id="scanBulkCount">0</span>)
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="scanListContainer" style="max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)"></div>
+
+    <!-- Pagination Footer -->
+    <div id="scanPaginationWrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
       <button class="btn press" onclick="hide('dlg')">Đóng</button>
     </div>
   `);
-  let html = '<table><thead><tr><th>Profile</th><th>Thư Mục</th><th>Trạng Thái</th><th style="text-align:right">Thao Tác</th></tr></thead><tbody>';
-  profiles.forEach(p => {
-    html += `<tr>
-      <td><strong>${esc(p.name)}</strong>${p.email ? `<div style="font-size:11px;color:var(--ink-2)">${esc(p.email)}</div>` : ''}</td>
-      <td><code style="font-size:11px;color:var(--primary-dark)">${esc(p.directory)}</code></td>
-      <td>${p.is_imported ? `<span class="badge b-green">Đã nạp (${esc(p.imported_name)})</span>` : '<span class="badge b-gray">Chưa nạp</span>'}</td>
-      <td style="text-align:right">${p.is_imported ? '—' : `<button class="btn btn-mini btn-p press" onclick="importSingleProfile('${esc(p.directory)}','${esc(p.suggested_name)}')">Import</button>`}</td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  q('#scanListContainer').innerHTML = html;
+
+  updateScanProfilesTable();
 }
+
+function onScanSearchInput(val) {
+  scanProfilesState.search = val;
+  scanProfilesState.page = 1;
+  const clearBtn = q('#scanSearchClear');
+  if (clearBtn) clearBtn.style.display = val ? 'inline-block' : 'none';
+  updateScanProfilesTable();
+}
+
+function clearScanSearch() {
+  const inp = q('#scanSearchInput');
+  if (inp) {
+    inp.value = '';
+    inp.focus();
+  }
+  onScanSearchInput('');
+}
+
+function onScanFilterChange(val) {
+  scanProfilesState.statusFilter = val;
+  scanProfilesState.page = 1;
+  updateScanProfilesTable();
+}
+
+function onScanPageSizeChange(val) {
+  scanProfilesState.pageSize = parseInt(val, 10) || 25;
+  scanProfilesState.page = 1;
+  updateScanProfilesTable();
+}
+
+function goToScanPage(p) {
+  scanProfilesState.page = p;
+  updateScanProfilesTable();
+  const c = q('#scanListContainer');
+  if (c) c.scrollTop = 0;
+}
+
+function toggleProfileSelection(dir, isChecked) {
+  if (isChecked) {
+    scanProfilesState.selectedDirs.add(dir);
+  } else {
+    scanProfilesState.selectedDirs.delete(dir);
+  }
+  updateSelectionUI();
+}
+
+function toggleSelectAllPage(isChecked) {
+  const filtered = getFilteredScannedProfiles();
+  const pageSize = scanProfilesState.pageSize;
+  const page = scanProfilesState.page;
+  const startIndex = (page - 1) * pageSize;
+  const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+  pageItems.forEach(p => {
+    if (!p.is_imported) {
+      if (isChecked) scanProfilesState.selectedDirs.add(p.directory);
+      else scanProfilesState.selectedDirs.delete(p.directory);
+    }
+  });
+  updateScanProfilesTable();
+}
+
+function updateSelectionUI() {
+  const count = scanProfilesState.selectedDirs.size;
+  const infoEl = q('#scanSelectionInfo');
+  const bulkBtn = q('#scanBulkImportBtn');
+  const countEl = q('#scanBulkCount');
+  if (count > 0) {
+    if (infoEl) { infoEl.style.display = 'inline'; infoEl.innerText = `Đã chọn: ${count} profile`; }
+    if (bulkBtn) bulkBtn.style.display = 'inline-flex';
+    if (countEl) countEl.innerText = count;
+  } else {
+    if (infoEl) infoEl.style.display = 'none';
+    if (bulkBtn) bulkBtn.style.display = 'none';
+  }
+}
+
+async function bulkImportSelectedProfiles() {
+  const dirs = Array.from(scanProfilesState.selectedDirs);
+  if (!dirs.length) return;
+  if (!confirm(`Bạn có chắc chắn muốn nạp ${dirs.length} Chrome profile đã chọn vào Dola?`)) return;
+  try {
+    const res = await api('/api/admin/chrome-profiles/bulk-import', {
+      method: 'POST',
+      body: { directories: dirs, prefix: 'p_' }
+    });
+    toast('Đã nạp hàng loạt', `Nạp thành công ${res.imported_count || 0} profile vào hệ thống!`, 'success');
+    for (const r of (res.results || [])) {
+      if (r.directory && r.status === 'imported') {
+        const item = scannedProfilesData.find(x => x.directory === r.directory);
+        if (item) {
+          item.is_imported = true;
+          item.imported_name = r.name;
+        }
+      }
+    }
+    scanProfilesState.selectedDirs.clear();
+    updateScanProfilesTable();
+    refresh();
+  } catch(e) {
+    alert('Lỗi nạp hàng loạt: ' + e.message);
+  }
+}
+
+function updateScanProfilesTable() {
+  const total = scannedProfilesData.length;
+  const filtered = getFilteredScannedProfiles();
+  const filteredCount = filtered.length;
+  const pageSize = scanProfilesState.pageSize;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
+
+  if (scanProfilesState.page > totalPages) scanProfilesState.page = totalPages;
+  if (scanProfilesState.page < 1) scanProfilesState.page = 1;
+  const curPage = scanProfilesState.page;
+
+  const startIndex = (curPage - 1) * pageSize;
+  const endIndex = Math.min(filteredCount, startIndex + pageSize);
+  const pageItems = filtered.slice(startIndex, endIndex);
+
+  // Update filtered badge
+  const fltBadge = q('#scanBadgeFiltered');
+  if (fltBadge) {
+    if (filteredCount !== total || scanProfilesState.search || scanProfilesState.statusFilter !== 'all') {
+      fltBadge.style.display = 'inline-flex';
+      fltBadge.innerText = `Khớp lọc: ${filteredCount}`;
+    } else {
+      fltBadge.style.display = 'none';
+    }
+  }
+
+  // Update Select All Checkbox state
+  const unimportedOnPage = pageItems.filter(p => !p.is_imported);
+  const allPageSelected = unimportedOnPage.length > 0 && unimportedOnPage.every(p => scanProfilesState.selectedDirs.has(p.directory));
+  const selectAllCb = q('#scanSelectAllPageCb');
+  if (selectAllCb) {
+    selectAllCb.checked = allPageSelected;
+    selectAllCb.disabled = unimportedOnPage.length === 0;
+  }
+
+  // Render Table
+  let html = '';
+  if (pageItems.length === 0) {
+    html = `<div style="text-align:center;padding:48px 20px;color:var(--ink-2)">
+      <i class="bi bi-search" style="font-size:28px;opacity:0.4;display:block;margin-bottom:10px"></i>
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">Không tìm thấy profile nào</div>
+      <div style="font-size:12px;color:var(--ink-3);margin-bottom:12px">Không có kết quả khớp với từ khóa "${esc(scanProfilesState.search)}" và bộ lọc hiện tại.</div>
+      <button class="btn btn-mini press" onclick="clearScanSearch();onScanFilterChange('all')"><i class="bi bi-arrow-counterclockwise"></i> Đặt lại tìm kiếm & bộ lọc</button>
+    </div>`;
+  } else {
+    html = `<table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="position:sticky;top:0;background:var(--surface-2);z-index:2;box-shadow:0 1px 0 var(--line)">
+          <th style="width:36px;text-align:center">#</th>
+          <th>Profile Chrome</th>
+          <th>Thư Mục</th>
+          <th>Trạng Thái</th>
+          <th style="text-align:right">Thao Tác</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    pageItems.forEach((p) => {
+      const isChecked = scanProfilesState.selectedDirs.has(p.directory);
+      html += `<tr>
+        <td style="width:36px;text-align:center">
+          ${p.is_imported ? '<span style="color:var(--ink-3);font-size:11px">✓</span>' : `<input type="checkbox" onchange="toggleProfileSelection('${esc(p.directory)}', this.checked)" ${isChecked ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer;margin:0">`}
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:50%;background:${p.highlight_color || 'var(--line-2)'};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.2)">
+              ${esc((p.name || 'P')[0].toUpperCase())}
+            </div>
+            <div>
+              <div style="font-weight:600;color:var(--ink)">
+                ${esc(p.name)}
+                ${p.is_default ? '<span class="badge b-blue" style="font-size:10px;padding:0 5px;margin-left:4px">Default</span>' : ''}
+              </div>
+              ${p.email ? `<div style="font-size:11.5px;color:var(--ink-2);display:flex;align-items:center;gap:4px"><i class="bi bi-envelope" style="font-size:10px"></i>${esc(p.email)}</div>` : '<div style="font-size:11px;color:var(--ink-3)">Không có email</div>'}
+            </div>
+          </div>
+        </td>
+        <td><code style="font-size:11.5px;color:var(--primary-dark);background:rgba(94,106,210,0.08);padding:2px 6px;border-radius:5px">${esc(p.directory)}</code></td>
+        <td>${p.is_imported ? `<span class="badge b-green"><i class="bi bi-check-circle-fill"></i> Đã nạp (${esc(p.imported_name)})</span>` : '<span class="badge b-gray"><i class="bi bi-circle"></i> Chưa nạp</span>'}</td>
+        <td style="text-align:right">
+          ${p.is_imported ? '<span style="color:var(--ink-3);font-size:12px">Đã sẵn sàng</span>' : `<button class="btn btn-mini btn-p press" data-directory="${esc(p.directory)}" data-suggested-name="${esc(p.suggested_name)}" onclick="importSingleProfile(this.dataset.directory, this.dataset.suggestedName)"><i class="bi bi-plus-lg"></i> Import</button>`}
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  const container = q('#scanListContainer');
+  if (container) container.innerHTML = html;
+
+  // Render Pagination controls
+  const pagWrap = q('#scanPaginationWrap');
+  if (pagWrap) {
+    if (filteredCount === 0) {
+      pagWrap.innerHTML = '';
+    } else {
+      let pageBtnsHtml = '';
+      if (totalPages > 1) {
+        // Prev / First
+        pageBtnsHtml += `<button class="btn btn-mini press" onclick="goToScanPage(1)" ${curPage === 1 ? 'disabled style="opacity:0.4"' : ''} title="Trang đầu"><i class="bi bi-chevron-double-left"></i></button>`;
+        pageBtnsHtml += `<button class="btn btn-mini press" onclick="goToScanPage(${curPage - 1})" ${curPage === 1 ? 'disabled style="opacity:0.4"' : ''} title="Trang trước"><i class="bi bi-chevron-left"></i></button>`;
+
+        // Page numbers calculation
+        let pagesToShow = [];
+        if (totalPages <= 7) {
+          for (let i = 1; i <= totalPages; i++) pagesToShow.push(i);
+        } else {
+          pagesToShow.push(1);
+          if (curPage > 3) pagesToShow.push('...');
+          const start = Math.max(2, curPage - 1);
+          const end = Math.min(totalPages - 1, curPage + 1);
+          for (let i = start; i <= end; i++) {
+            if (!pagesToShow.includes(i)) pagesToShow.push(i);
+          }
+          if (curPage < totalPages - 2) pagesToShow.push('...');
+          if (!pagesToShow.includes(totalPages)) pagesToShow.push(totalPages);
+        }
+
+        pagesToShow.forEach(item => {
+          if (item === '...') {
+            pageBtnsHtml += `<span style="padding:0 4px;color:var(--ink-3);font-size:12px">...</span>`;
+          } else {
+            const isCur = item === curPage;
+            pageBtnsHtml += `<button class="btn btn-mini ${isCur ? 'btn-p' : ''} press" onclick="goToScanPage(${item})" style="min-width:30px">${item}</button>`;
+          }
+        });
+
+        // Next / Last
+        pageBtnsHtml += `<button class="btn btn-mini press" onclick="goToScanPage(${curPage + 1})" ${curPage === totalPages ? 'disabled style="opacity:0.4"' : ''} title="Trang sau"><i class="bi bi-chevron-right"></i></button>`;
+        pageBtnsHtml += `<button class="btn btn-mini press" onclick="goToScanPage(${totalPages})" ${curPage === totalPages ? 'disabled style="opacity:0.4"' : ''} title="Trang cuối"><i class="bi bi-chevron-double-right"></i></button>`;
+      }
+
+      pagWrap.innerHTML = `
+        <div style="font-size:12px;color:var(--ink-2)">
+          Hiển thị <strong>${startIndex + 1} – ${endIndex}</strong> trên <strong>${filteredCount}</strong> profile (Trang <strong>${curPage}</strong> / <strong>${totalPages}</strong>)
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          ${pageBtnsHtml}
+        </div>
+      `;
+    }
+  }
+
+  updateSelectionUI();
+}
+
 async function importSingleProfile(directory, suggestedName) {
   const targetName = prompt('Nhập định danh account trong Dola:', suggestedName);
   if (!targetName) return;
   try {
     const res = await api('/api/admin/chrome-profiles/import', { method: 'POST', body: { directory, name: targetName.trim() } });
     toast('Đã nạp', 'Nạp thành công profile ' + res.account.name, 'success');
-    openScanProfiles();
+    const item = scannedProfilesData.find(x => x.directory === directory);
+    if (item) {
+      item.is_imported = true;
+      item.imported_name = res.account.name;
+    }
+    scanProfilesState.selectedDirs.delete(directory);
+    updateScanProfilesTable();
     refresh();
   } catch(e){ alert(e.message); }
 }
@@ -1787,7 +2486,7 @@ async function openInspectDolaElements() {
   }
 }
 
-/* ---- LIVE FLOW (flow.google.com) AUTOMATION & STREAMING MODAL ---- */
+/* ---- LIVE DOLA (dola.com) VISUAL AUTOMATION & STREAMING MODAL ---- */
 let liveFlowEventSource = null;
 
 async function openLiveFlowModal(targetAcc = null) {
@@ -1805,7 +2504,7 @@ async function openLiveFlowModal(targetAcc = null) {
   const accOptions = accList.map(x => {
     const isVerified = x.login_ok === 1;
     const tag = isVerified ? '✓ [Google Session Active]' : '⚠️ [Chưa Xác Thực/Offline]';
-    return `<option value="${esc(x.name)}" ${x.name === defaultAcc ? 'selected' : ''}>${esc(x.name)} ${tag} (${x.email || 'No email'})</option>`;
+    return `<option value="${esc(x.name)}" ${x.name === defaultAcc ? 'selected' : ''}>${esc(x.name)} ${tag} (${esc(x.email || 'No email')})</option>`;
   }).join('');
 
   showDlgWide(`
@@ -1813,13 +2512,13 @@ async function openLiveFlowModal(targetAcc = null) {
       <div style="display:flex;align-items:center;gap:10px">
         <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;font-size:16px;box-shadow:0 2px 8px rgba(124,58,237,0.3)"><i class="bi bi-broadcast"></i></span>
         <div>
-          <h2 style="margin:0;font-size:16px;font-weight:700">Live Flow Visual Automation (Google Flow)</h2>
-          <div style="font-size:12px;color:var(--ink-2)">Trực tiếp theo dõi AI Agent định vị và thao tác trên <b style="color:#A855F7">https://flow.google.com/</b></div>
+          <h2 style="margin:0;font-size:16px;font-weight:700">Live Dola Visual Automation (dola.com)</h2>
+          <div style="font-size:12px;color:var(--ink-2)">Trực tiếp theo dõi AI Agent định vị và thao tác trên <b style="color:#A855F7">https://www.dola.com/chat</b></div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <a href="https://flow.google.com/" target="_blank" class="btn btn-mini press" style="background:#2A2A32;color:#fff;border-color:var(--line)" title="Mở trang Google Flow gốc">
-          <i class="bi bi-box-arrow-up-right"></i> flow.google.com
+        <a href="https://www.dola.com/chat" target="_blank" class="btn btn-mini press" style="background:#2A2A32;color:#fff;border-color:var(--line)" title="Mở trang Dola Chat">
+          <i class="bi bi-box-arrow-up-right"></i> dola.com/chat
         </a>
         <button class="btn btn-mini press" onclick="closeLiveFlowModal()"><i class="bi bi-x-lg"></i></button>
       </div>
@@ -1837,20 +2536,19 @@ async function openLiveFlowModal(targetAcc = null) {
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Chế độ hoạt động</label>
           <select id="liveFlowModeSelect" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
-            <option value="image" selected>Tạo Ảnh (Image Mode - Nano Banana 2)</option>
-            <option value="video">Tạo Video (Video Mode)</option>
+            <option value="human_flow" selected>Tự động tạo Video (Human Flow trên dola.com)</option>
             <option value="inspect">Chỉ quét DOM (Trực quan hóa Bounding Boxes)</option>
           </select>
         </div>
       </div>
 
-      <!-- Model, Ratio, Quantity Row -->
+      <!-- Model, Ratio, Duration Row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Model</label>
           <select id="liveFlowModelSelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
-            <option value="Nano Banana 2" selected>Nano Banana 2 (Mặc định)</option>
-            <option value="Banana Pro">Banana Pro (Cao cấp)</option>
+            <option value="seedance-2.0" selected>Dreamina Seedance 2.0 (Mặc định)</option>
+            <option value="seedance-2.5">Dreamina Seedance 2.5</option>
           </select>
         </div>
         <div>
@@ -1864,22 +2562,20 @@ async function openLiveFlowModal(targetAcc = null) {
           </select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Số lượng</label>
-          <select id="liveFlowQtySelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
-            <option value="x1" selected>x1 (1 ảnh)</option>
-            <option value="x2">x2 (2 ảnh)</option>
-            <option value="x3">x3 (3 ảnh)</option>
-            <option value="x4">x4 (4 ảnh)</option>
+          <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Thời lượng</label>
+          <select id="liveFlowDurationSelect" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+            <option value="10" selected>10s (Mặc định)</option>
+            <option value="5">5s</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Prompt mô tả (What do you want to create?)</label>
+        <label style="font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:4px;display:block">Prompt mô tả video trên Dola</label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="liveFlowPromptInput" value="A majestic golden eagle soaring above misty mountain peaks at sunset, cinematic 8k" placeholder="What do you want to create?" style="flex:1;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+          <input type="text" id="liveFlowPromptInput" value="A majestic golden eagle soaring above misty mountain peaks at sunset, cinematic 8k" placeholder="Nhập câu lệnh (prompt) mô tả video bạn muốn tạo trên Dola..." style="flex:1;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
           <button id="btnStartLiveFlow" class="btn btn-p press" style="background:linear-gradient(135deg,#7C3AED,#A855F7);border-color:transparent;white-space:nowrap;padding:0 16px" onclick="startLiveFlow()">
-            <i class="bi bi-play-fill"></i> Bắt đầu Live Flow
+            <i class="bi bi-play-fill"></i> Bắt đầu Live Dola
           </button>
           <button id="btnStopLiveFlow" class="btn btn-danger press" style="display:none;white-space:nowrap;padding:0 16px" onclick="stopLiveFlow()">
             <i class="bi bi-stop-fill"></i> Dừng lại
@@ -1888,15 +2584,15 @@ async function openLiveFlowModal(targetAcc = null) {
       </div>
     </div>
 
-    <!-- 7-Step Horizontal Stepper for Google Flow -->
+    <!-- 7-Step Horizontal Stepper for Dola Live -->
     <div id="liveFlowStepper" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px">
-      <div id="flowstep-1" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">1. Chrome</div>
-      <div id="flowstep-2" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">2. Google Flow</div>
-      <div id="flowstep-3" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">3. Quét DOM</div>
-      <div id="flowstep-4" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">4. Mode & Tỉ Lệ</div>
+      <div id="flowstep-1" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">1. Chrome Profile</div>
+      <div id="flowstep-2" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">2. dola.com/chat</div>
+      <div id="flowstep-3" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">3. Quét DOM Dola</div>
+      <div id="flowstep-4" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">4. Nút Tạo Video</div>
       <div id="flowstep-5" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">5. Gõ Prompt</div>
-      <div id="flowstep-6" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">6. Submit Arrow</div>
-      <div id="flowstep-7" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">7. Kết Quả</div>
+      <div id="flowstep-6" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">6. Submit Lệnh</div>
+      <div id="flowstep-7" style="background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center;font-size:10px;color:var(--ink-3);transition:all 0.3s">7. Render & Polling</div>
     </div>
 
     <!-- Live Screen Viewport -->
@@ -1915,17 +2611,17 @@ async function openLiveFlowModal(targetAcc = null) {
       </div>
 
       <div id="liveFlowScreenWrap" style="min-height:360px;max-height:460px;display:flex;align-items:center;justify-content:center;background:#050608;position:relative">
-        <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Flow Viewport">
+        <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Dola Viewport">
         <div id="liveFlowPlaceholder" style="text-align:center;color:var(--ink-3);padding:60px 20px">
           <i class="bi bi-broadcast-pin" style="font-size:40px;color:#A855F7;opacity:0.7;display:inline-block;margin-bottom:10px"></i><br>
-          <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Flow</b> để xem quá trình mở Google Flow, dò Composer và tạo ảnh/video theo thời gian thực</span>
+          <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Dola</b> để xem quá trình mở Dola.com, định vị DOM, nhập prompt và tạo video theo thời gian thực</span>
         </div>
       </div>
     </div>
 
     <!-- Terminal Log -->
     <div style="background:#0b0c10;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:130px;overflow-y:auto;font-family:monospace;font-size:11px" id="liveFlowTerminal">
-      <div style="color:var(--ink-3)">[Live Flow Terminal] Đang kết nối luồng sự kiện SSE...</div>
+      <div style="color:var(--ink-3)">[Live Dola Terminal] Đang kết nối luồng sự kiện SSE...</div>
     </div>
   `);
 
@@ -1968,11 +2664,11 @@ async function initLiveFlowStream() {
     const data = await api('/api/admin/stream-token');
     token = data.token || '';
   } catch(e) {
-    appendLiveFlowLog('[Live Flow] Không thể lấy quyền truy cập SSE: ' + e.message, 'danger');
+    appendLiveFlowLog('[Live Dola] Không thể lấy quyền truy cập SSE: ' + e.message, 'danger');
     return;
   }
 
-  liveFlowEventSource = new EventSource(`/api/admin/flow/live-stream?token=${encodeURIComponent(token)}`);
+  liveFlowEventSource = new EventSource(`/api/admin/jev/live-stream?token=${encodeURIComponent(token)}`);
 
   liveFlowEventSource.addEventListener('status', e => {
     try {
@@ -2034,7 +2730,7 @@ async function initLiveFlowStream() {
       const d = JSON.parse(e.data);
       updateLiveFlowUiRunning(false, d.message);
       appendLiveFlowLog(d.message, d.success ? 'success' : 'warn');
-      toast('Live Google Flow', d.message, d.success ? 'success' : 'info');
+      toast('Live Dola', d.message, d.success ? 'success' : 'info');
       const bar = q('#liveFlowProgressBar');
       if (bar) bar.style.width = d.success ? '100%' : '0%';
       if (d.success) updateFlowStepperUi(7, 7);
@@ -2075,10 +2771,10 @@ async function startLiveFlow() {
   const wrap = q('#liveFlowScreenWrap');
   if (wrap && !q('#liveFlowScreen')) {
     wrap.innerHTML = `
-      <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Flow Viewport">
+      <img id="liveFlowScreen" style="width:100%;max-height:460px;object-fit:contain;display:none" alt="Live Dola Viewport">
       <div id="liveFlowPlaceholder" style="text-align:center;color:var(--ink-3);padding:60px 20px">
         <i class="bi bi-broadcast-pin" style="font-size:40px;color:#A855F7;opacity:0.7;display:inline-block;margin-bottom:10px"></i><br>
-        <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Flow</b> để xem quá trình mở Google Flow, dò Composer và tạo ảnh/video theo thời gian thực</span>
+        <span style="font-size:13px;color:var(--ink-2)">Bấm <b>Bắt đầu Live Dola</b> để xem quá trình mở Dola.com, định vị DOM, nhập prompt và tạo video theo thời gian thực</span>
       </div>
     `;
   }
@@ -2089,24 +2785,24 @@ async function startLiveFlow() {
   updateFlowStepperUi(1, 7);
 
   const acc = q('#liveFlowAccSelect')?.value;
-  const mode = q('#liveFlowModeSelect')?.value || 'image';
+  const mode = q('#liveFlowModeSelect')?.value || 'human_flow';
   const prompt = q('#liveFlowPromptInput')?.value || '';
-  const model = q('#liveFlowModelSelect')?.value || 'Nano Banana 2';
+  const model = q('#liveFlowModelSelect')?.value || 'seedance-2.0';
   const ratio = q('#liveFlowRatioSelect')?.value || '16:9';
-  const quantity = q('#liveFlowQtySelect')?.value || 'x1';
+  const duration = parseInt(q('#liveFlowDurationSelect')?.value || '10', 10);
 
   if (!acc) {
-    alert('Vui lòng chọn một tài khoản Chrome Profile để chạy Live Flow');
+    alert('Vui lòng chọn một tài khoản Chrome Profile để chạy Live Dola');
     return;
   }
 
   updateLiveFlowUiRunning(true, 'Đang gửi lệnh bắt đầu...');
-  appendLiveFlowLog(`Khởi chạy phiên Live Google Flow với profile [${acc}], mode: ${mode}, ratio: ${ratio}, model: ${model}...`, 'info');
+  appendLiveFlowLog(`Khởi chạy phiên Live Dola với profile [${acc}], mode: ${mode}, model: ${model}, ratio: ${ratio}, duration: ${duration}s...`, 'info');
 
   try {
-    const res = await api('/api/admin/flow/live-start', {
+    const res = await api('/api/admin/jev/live-start', {
       method: 'POST',
-      body: { account: acc, mode, prompt, model, ratio, quantity },
+      body: { account: acc, mode, prompt, model, ratio, duration },
     });
     if (!res.ok) {
       throw new Error(res.error || 'Lỗi khởi chạy');
@@ -2114,14 +2810,14 @@ async function startLiveFlow() {
   } catch(e) {
     updateLiveFlowUiRunning(false, e.message);
     appendLiveFlowLog('Lỗi khởi chạy: ' + e.message, 'error');
-    toast('Lỗi Live Flow', e.message, 'danger');
+    toast('Lỗi Live Dola', e.message, 'danger');
   }
 }
 
 async function stopLiveFlow() {
   try {
-    await api('/api/admin/flow/live-stop', { method: 'POST' });
-    appendLiveFlowLog('Đã gửi yêu cầu dừng phiên Live Flow', 'warn');
+    await api('/api/admin/jev/live-stop', { method: 'POST' });
+    appendLiveFlowLog('Đã gửi yêu cầu dừng phiên Live Dola', 'warn');
   } catch(e) {
     alert(e.message);
   }
@@ -2136,6 +2832,10 @@ function closeLiveFlowModal() {
 }
 
 // Global binds & aliases
+window.openLiveDolaModal = openLiveFlowModal;
+window.startLiveDola = startLiveFlow;
+window.stopLiveDola = stopLiveFlow;
+window.closeLiveDolaModal = closeLiveFlowModal;
 window.openLiveFlowModal = openLiveFlowModal;
 window.startLiveFlow = startLiveFlow;
 window.stopLiveFlow = stopLiveFlow;
@@ -2151,39 +2851,171 @@ window.submitDolaWithLiveJev = openLiveFlowModal;
 window.setDolaDuration = setDolaDuration;
 window.setDolaPromptSample = setDolaPromptSample;
 
-/* ---- TAB 5: WORKFLOW STUDIO REAL TASK PIPELINE ---- */
+/* ---- WORKFLOW STUDIO (BOUND TO PROFILE) ---- */
+let currentWorkflowProfile = '';
+let canvasPollTimer = null;
+let currentCanvasTaskId = null;
+
 function selectNode(el) {
   document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
   el.classList.add('selected');
 }
 
-let canvasPollTimer = null;
-let currentCanvasTaskId = null;
-
-async function syncCanvasWithLatestTask(targetTaskId = null) {
+async function openWorkflowStudioModal(targetProfile = null) {
+  let accList = [];
   try {
-    const r = await api('/api/admin/tasks?limit=20');
+    const a = await api('/api/admin/accounts');
+    accList = a.accounts || [];
+  } catch(e) {}
+
+  const verifiedAcc = accList.find(x => x.login_ok === 1)?.name;
+  const defaultAcc = targetProfile || verifiedAcc || (accList.length ? accList[0].name : '');
+  currentWorkflowProfile = defaultAcc;
+
+  // Build Account dropdown inside Studio
+  const accSel = q('#wfModalAccountSelect');
+  if (accSel) {
+    accSel.innerHTML = accList.map(x => {
+      const isVerified = x.login_ok === 1;
+      const statusIcon = isVerified ? '✓' : '⚠️';
+      return `<option value="${esc(x.name)}" ${x.name === defaultAcc ? 'selected' : ''}>${statusIcon} ${esc(x.name)} (${esc(x.email || 'No email')})</option>`;
+    }).join('') || '<option value="">Chưa có tài khoản</option>';
+  }
+
+  // Update Profile details in header & parameters
+  const accObj = accList.find(x => x.name === defaultAcc);
+  const badgeEl = q('#wfModalProfileBadge');
+  if (badgeEl) badgeEl.textContent = `Profile: ${defaultAcc || 'Chưa chọn'}`;
+  
+  const textEl = q('#wfModalCurrentAccountText');
+  if (textEl) textEl.textContent = defaultAcc || 'Chưa chọn';
+
+  const paramEl = q('#wfParamAccountName');
+  if (paramEl) paramEl.textContent = defaultAcc || 'Chưa chọn';
+
+  const histNameEl = q('#wfProfileHistoryName');
+  if (histNameEl) histNameEl.textContent = defaultAcc || 'Chưa chọn';
+
+  const statusEl = q('#wfModalProfileStatus');
+  if (statusEl) {
+    if (accObj && accObj.login_ok === 1) {
+      statusEl.className = 'badge b-green';
+      statusEl.textContent = 'Session Active';
+    } else if (accObj) {
+      statusEl.className = 'badge b-orange';
+      statusEl.textContent = 'Chưa xác thực';
+    } else {
+      statusEl.className = 'badge b-gray';
+      statusEl.textContent = 'Trống';
+    }
+  }
+
+  const n2Acc = q('#node2Account');
+  if (n2Acc) n2Acc.textContent = defaultAcc || 'Auto Pool';
+
+  show('workflowStudioModal');
+
+  // Sync canvas with latest task of this profile
+  await syncCanvasWithLatestTask(null, defaultAcc);
+  await refreshProfileHistory(defaultAcc);
+}
+
+function onWorkflowStudioAccountChange(newProfile) {
+  openWorkflowStudioModal(newProfile);
+}
+
+function closeWorkflowStudioModal() {
+  if (canvasPollTimer) {
+    clearInterval(canvasPollTimer);
+    canvasPollTimer = null;
+  }
+  hide('workflowStudioModal');
+}
+
+function openLiveJevFromStudio() {
+  if (currentWorkflowProfile) {
+    openLiveFlowModal(currentWorkflowProfile);
+  } else {
+    openLiveFlowModal();
+  }
+}
+
+async function refreshProfileHistory(profile) {
+  try {
+    const r = await api('/api/admin/tasks?limit=50');
+    renderProfileTasksList(r.tasks || [], profile);
+  } catch(e) {}
+}
+
+function renderProfileTasksList(tasks, profile) {
+  const listEl = q('#wfProfileTasksList');
+  if (!listEl) return;
+  const profileTasks = (tasks || []).filter(t => !profile || t.account === profile).slice(0, 5);
+  if (!profileTasks.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:14px;color:var(--ink-3);font-size:12px;border:1px dashed var(--line);border-radius:8px">Chưa có lịch sử render nào cho profile <strong style="color:var(--ink)">${esc(profile || 'này')}</strong>. Bấm nút <strong>"Chạy Workflow Thật"</strong> ở trên để khởi động task đầu tiên cho profile này!</div>`;
+    return;
+  }
+  listEl.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${profileTasks.map(t => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:12px;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+            <span class="badge ${t.status === 'completed' ? 'b-green' : t.status === 'processing' ? 'b-orange pulse-running' : t.status === 'failed' ? 'b-red' : 'b-gray'}">${t.status}</span>
+            <code style="color:var(--primary-dark);font-weight:600">#${esc(t.id.replace('video_', '').slice(0, 8))}</code>
+            <span style="color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px" title="${esc(t.prompt || '')}">${esc(t.prompt || 'Không có prompt')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--ink-3)">${fmt(t.created_at)}</span>
+            <button class="btn btn-mini press" onclick="syncCanvasWithLatestTask('${esc(t.id)}', '${esc(profile)}')"><i class="bi bi-eye"></i> Xem Trên Canvas</button>
+            ${t.video_url ? `<button class="btn btn-mini btn-p press" onclick="playVideo('${esc(t.video_url)}')"><i class="bi bi-play-fill"></i> Phát Video</button>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function setWfPromptSample(type) {
+  const p = q('#wfStudioPrompt');
+  if (!p) return;
+  if (type === 'drone') {
+    p.value = 'A cinematic 4k drone shot of misty mountain peaks at golden hour, hyper-realistic, dramatic lighting';
+  } else if (type === 'cyberpunk') {
+    p.value = 'Futuristic cyberpunk neon city street in heavy rain, reflections on wet asphalt, flying hovercars, cinematic camera tilt';
+  } else if (type === 'anime') {
+    p.value = 'Makoto Shinkai aesthetic anime scenery, cherry blossom petals drifting under vibrant blue sky with fluffy white clouds, soft sunlight';
+  }
+}
+
+async function syncCanvasWithLatestTask(targetTaskId = null, targetAccount = null) {
+  const profile = targetAccount || currentWorkflowProfile;
+  try {
+    const r = await api('/api/admin/tasks?limit=50');
     const tasks = r.tasks || [];
     let task = null;
     if (targetTaskId) {
       task = tasks.find(x => x.id === targetTaskId);
     }
-    if (!task && tasks.length > 0) {
+    if (!task && profile) {
+      task = tasks.find(x => x.account === profile);
+    }
+    if (!task && tasks.length > 0 && !profile) {
       task = tasks[0];
     }
 
     if (!task) {
-      q('#node1PromptText').textContent = 'Chưa có tác vụ nào trong hàng đợi';
-      q('#node1Sub').textContent = 'Không có task';
-      q('#node2Account').textContent = 'Auto Pool';
+      q('#node1PromptText').textContent = profile ? `Chưa có tác vụ nào của profile [${profile}]` : 'Chưa có tác vụ nào trong hàng đợi';
+      q('#node1Sub').textContent = 'Chưa có task';
+      q('#node2Account').textContent = profile || 'Auto Pool';
       q('#node2TaskId').textContent = '—';
       q('#node2ProgressText').className = 'badge b-gray';
       q('#node2ProgressText').textContent = 'Chờ lệnh';
-      q('#node2StatusSub').textContent = 'Browser Pool · Sẵn sàng';
+      q('#node2StatusSub').textContent = profile ? `Worker [${profile}] · Sẵn sàng` : 'Browser Pool · Sẵn sàng';
       q('#node2').classList.remove('pulse-running');
       q('#node2StatusPill').style.background = '#3A3A42';
       q('#node2StatusPill').innerHTML = '<i class="bi bi-dot"></i>';
       q('#node3Placeholder').style.display = 'block';
+      q('#node3Placeholder').innerHTML = '<i class="bi bi-film" style="font-size:26px;opacity:0.6;display:block;margin-bottom:6px"></i><span>Chưa có video render</span>';
       q('#node3PlayerWrap').style.display = 'none';
       q('#node3StatusPill').style.background = '#3A3A42';
       return;
@@ -2201,7 +3033,7 @@ async function syncCanvasWithLatestTask(targetTaskId = null) {
     q('#node1StatusPill').innerHTML = '<i class="bi bi-check"></i>';
 
     // Node 2: Dola Video Worker Engine
-    q('#node2Account').textContent = task.account || 'Auto Pool';
+    q('#node2Account').textContent = task.account || profile || 'Auto Pool';
     q('#node2TaskId').textContent = task.id.replace('video_', '').slice(0, 10);
 
     const node2 = q('#node2');
@@ -2215,14 +3047,14 @@ async function syncCanvasWithLatestTask(targetTaskId = null) {
       n2Pill.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i>';
       n2Prog.className = 'badge b-orange';
       n2Prog.textContent = 'Rendering';
-      n2Sub.textContent = `Worker [${task.account || 'Đang bốc'}] đang thao tác`;
+      n2Sub.textContent = `Worker [${task.account || profile || 'Đang bốc'}] đang thao tác`;
     } else if (task.status === 'completed') {
       node2.classList.remove('pulse-running');
       n2Pill.style.background = '#34C759';
       n2Pill.innerHTML = '<i class="bi bi-check"></i>';
       n2Prog.className = 'badge b-green';
       n2Prog.textContent = 'Done';
-      n2Sub.textContent = `Render thành công bởi ${task.account || 'Worker'}`;
+      n2Sub.textContent = `Render thành công bởi ${task.account || profile || 'Worker'}`;
     } else if (task.status === 'failed') {
       node2.classList.remove('pulse-running');
       n2Pill.style.background = '#EB5757';
@@ -2236,7 +3068,7 @@ async function syncCanvasWithLatestTask(targetTaskId = null) {
       n2Pill.innerHTML = '<i class="bi bi-clock"></i>';
       n2Prog.className = 'badge b-gray';
       n2Prog.textContent = 'Queued';
-      n2Sub.textContent = 'Đang chờ phân phối tài khoản';
+      n2Sub.textContent = `Đang xếp hàng cho [${task.account || profile || 'Pool'}]`;
     }
 
     // Node 3: MP4 Export & Video Player
@@ -2284,15 +3116,19 @@ async function syncCanvasWithLatestTask(targetTaskId = null) {
   }
 }
 
-async function runRealWorkflow() {
-  const promptInput = q('#dolaStudioPrompt')?.value.trim();
+async function runWorkflowStudioForCurrentProfile() {
+  const profile = currentWorkflowProfile;
+  if (!profile) {
+    toast('Chưa chọn profile', 'Vui lòng chọn một Chrome profile để chạy workflow!', 'warning');
+    return;
+  }
+  const promptInput = q('#wfStudioPrompt')?.value.trim();
   const testPrompt = promptInput || 'A cinematic 4k drone shot of misty mountain peaks at golden hour, hyper-realistic, dramatic lighting';
-  const acc = q('#dolaStudioAccount')?.value || null;
-  const model = q('#dolaStudioModel')?.value || 'seedance-2.0';
-  const duration = selectedDolaDuration || 10;
-  const ratio = q('#dolaStudioRatio')?.value || '16:9';
+  const model = q('#wfStudioModel')?.value || 'seedance-2.0';
+  const duration = parseInt(q('#wfStudioDuration')?.value || '10', 10);
+  const ratio = q('#wfStudioRatio')?.value || '16:9';
 
-  const btn = q('#btnRunRealWorkflow');
+  const btn = q('#btnRunWfStudio');
   const oldText = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Đang khởi tạo...';
@@ -2305,27 +3141,29 @@ async function runRealWorkflow() {
         prompt: testPrompt,
         duration,
         ratio,
-        ...(acc ? { account: acc } : {})
+        account: profile
       }
     });
 
-    toast('Workflow Bắt Đầu', `Đã tạo tác vụ thật [${res.id}]. Đang theo dõi tiến trình pipeline...`, 'success');
-    await syncCanvasWithLatestTask(res.id);
+    toast('Workflow Bắt Đầu', `Profile [${profile}] đã nhận task [${res.id}]. Đang theo dõi pipeline...`, 'success');
+    await syncCanvasWithLatestTask(res.id, profile);
+    await refreshProfileHistory(profile);
 
     if (canvasPollTimer) clearInterval(canvasPollTimer);
     canvasPollTimer = setInterval(async () => {
       try {
         const t = await api('/v1/videos/' + res.id);
-        await syncCanvasWithLatestTask(res.id);
+        await syncCanvasWithLatestTask(res.id, profile);
 
         if (t.status === 'completed') {
           clearInterval(canvasPollTimer);
           canvasPollTimer = null;
           btn.disabled = false;
           btn.innerHTML = oldText;
-          toast('Workflow Hoàn Tất!', 'Video thật đã render xong và phát trực tiếp trên Node 3!', 'success');
+          toast('Workflow Hoàn Tất!', `Profile ${profile} đã render xong video!`, 'success');
           const vid = q('#node3Video');
           if (vid) { try { vid.play(); } catch(err){} }
+          await refreshProfileHistory(profile);
           refresh();
         } else if (t.status === 'failed') {
           clearInterval(canvasPollTimer);
@@ -2333,6 +3171,7 @@ async function runRealWorkflow() {
           btn.disabled = false;
           btn.innerHTML = oldText;
           toast('Workflow Thất Bại', t.error || 'Lỗi xử lý video', 'danger');
+          await refreshProfileHistory(profile);
           refresh();
         }
       } catch(err) {
@@ -2354,9 +3193,535 @@ function openFullscreenCanvasVideo() {
   }
 }
 
-window.runRealWorkflow = runRealWorkflow;
+// Global escape listener for modals
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeWorkflowStudioModal();
+  }
+});
+
+// Exports for window
+window.openWorkflowStudioModal = openWorkflowStudioModal;
+window.closeWorkflowStudioModal = closeWorkflowStudioModal;
+window.openWorkflowStudio = openWorkflowStudioModal;
+window.onWorkflowStudioAccountChange = onWorkflowStudioAccountChange;
+window.openLiveJevFromStudio = openLiveJevFromStudio;
+window.runWorkflowStudioForCurrentProfile = runWorkflowStudioForCurrentProfile;
+window.runRealWorkflow = runWorkflowStudioForCurrentProfile;
 window.syncCanvasWithLatestTask = syncCanvasWithLatestTask;
-window.openFullscreenCanvasVideo = openFullscreenCanvasVideo;
+window.setWfPromptSample = setWfPromptSample;
+window.selectNode = selectNode;
+
+/* ==========================================================================
+   TAB 6: MCP INTEGRATION & API KEYS LOGIC
+   ========================================================================== */
+let mcpKeysList = [];
+let mcpSelectedKeyId = '';
+let mcpOneTimeSecret = '';
+let mcpSelectedClient = 'claude';
+let mcpConfigData = null;
+let mcpUsageData = null;
+let mcpUsagePeriod = 'today';
+
+async function loadMcp() {
+  const ep = `${window.location.origin}/mcp`;
+  const epEl = q('#mcpEndpointVal');
+  if (epEl) epEl.textContent = ep;
+
+  try {
+    const [cfg, keysRes, usageRes] = await Promise.all([
+      api('/api/mcp/config'),
+      api('/api/mcp/keys'),
+      api('/api/mcp/usage?period=' + encodeURIComponent(mcpUsagePeriod))
+    ]);
+    mcpConfigData = cfg;
+    mcpKeysList = keysRes.keys || [];
+    mcpUsageData = usageRes;
+
+    // Default select first active key if none selected
+    if (!mcpSelectedKeyId && mcpKeysList.length > 0) {
+      const activeKey = mcpKeysList.find(k => k.status === 'active') || mcpKeysList[0];
+      mcpSelectedKeyId = activeKey.id;
+    }
+
+    renderMcpStats();
+    renderMcpKeysTable();
+    renderMcpSetupGuide();
+    renderMcpCatalog();
+    renderMcpKeyUsage();
+    renderMcpActivity();
+  } catch(e) {
+    console.error('Error loading MCP data:', e);
+  }
+}
+
+function changeMcpPeriod(period) {
+  mcpUsagePeriod = period;
+  document.querySelectorAll('[data-mcp-period]').forEach(btn => {
+    btn.classList.toggle('btn-p', btn.dataset.mcpPeriod === period);
+  });
+  loadMcp();
+}
+
+function renderMcpStats() {
+  const m = mcpUsageData?.metrics || {};
+
+  // 1. Số lần tạo video
+  const createReqEl = q('#mcpStatCreateReq');
+  if (createReqEl) createReqEl.textContent = m.video_create_requested != null ? m.video_create_requested : (m.video_create_success || 0);
+
+  // 2. Số lần tải về
+  const downloadEl = q('#mcpStatDownload');
+  if (downloadEl) downloadEl.textContent = m.video_download_success || 0;
+
+  // 3. Số lần tạo thành công
+  const createSuccessEl = q('#mcpStatCreateSuccess');
+  if (createSuccessEl) createSuccessEl.textContent = m.video_create_success || 0;
+
+  // 4. Số lần tạo thất bại
+  const createFailedEl = q('#mcpStatCreateFailed');
+  if (createFailedEl) createFailedEl.textContent = m.video_create_failed || 0;
+
+  // 5. Giới hạn tối đa số lần tạo / 1 ngày
+  const dailyLimit = m.daily_limit || 100;
+  const dailyUsed = m.daily_used || 0;
+  const dailyRemaining = m.daily_remaining != null ? m.daily_remaining : Math.max(0, dailyLimit - dailyUsed);
+
+  const dailyLimitEl = q('#mcpStatDailyLimit');
+  if (dailyLimitEl) dailyLimitEl.textContent = dailyLimit;
+
+  const remHintEl = q('#mcpStatDailyRemHint');
+  if (remHintEl) remHintEl.textContent = `Còn lại: ${dailyRemaining} lượt hôm nay`;
+
+  // Quota Progress Bar
+  const usedValEl = q('#mcpQuotaUsedVal');
+  if (usedValEl) usedValEl.textContent = dailyUsed;
+
+  const maxValEl = q('#mcpQuotaMaxVal');
+  if (maxValEl) maxValEl.textContent = dailyLimit;
+
+  const remValEl = q('#mcpQuotaRemainingVal');
+  if (remValEl) remValEl.textContent = dailyRemaining;
+
+  const pct = Math.min(100, Math.round((dailyUsed / Math.max(1, dailyLimit)) * 100));
+  const barEl = q('#mcpQuotaProgressBar');
+  if (barEl) {
+    barEl.style.width = pct + '%';
+    if (pct >= 100) {
+      barEl.style.background = 'linear-gradient(90deg, #EB5757, #FF453A)';
+    } else if (pct >= 70) {
+      barEl.style.background = 'linear-gradient(90deg, #FF9500, #FFB340)';
+    } else {
+      barEl.style.background = 'linear-gradient(90deg, #34C759, #30D158)';
+    }
+  }
+
+  const badgeEl = q('#mcpQuotaBadge');
+  if (badgeEl) {
+    if (pct >= 100) {
+      badgeEl.textContent = 'Đã hết Quota';
+      badgeEl.style.background = 'var(--danger-light)';
+      badgeEl.style.color = 'var(--danger)';
+    } else if (pct >= 70) {
+      badgeEl.textContent = 'Sắp đầy';
+      badgeEl.style.background = 'var(--warning-light)';
+      badgeEl.style.color = 'var(--warning)';
+    } else {
+      badgeEl.textContent = 'Bình thường';
+      badgeEl.style.background = 'var(--success-light)';
+      badgeEl.style.color = 'var(--success)';
+    }
+  }
+}
+
+function renderMcpKeyUsage() {
+  const container = q('#mcpKeyUsageTableContainer');
+  if (!container) return;
+
+  const items = mcpUsageData?.keyUsage || [];
+  if (!items.length) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;font-size:12px;color:var(--ink-3)">Chưa có dữ liệu lượt gọi theo API key trong kỳ đã chọn.</div>';
+    return;
+  }
+
+  const rows = items.map(k => {
+    const totalCreate = (k.create_requested || (k.create_success + k.create_failed)) || 0;
+    const rate = totalCreate > 0 ? `${Math.round((k.create_success / totalCreate) * 100)}%` : '—';
+
+    return [
+      `<strong>${esc(k.name || 'API Client')}</strong>`,
+      `<code style="color:var(--ink-2)">${esc(k.prefix || '—')}</code>`,
+      `<strong>${k.tool_calls || 0}</strong>`,
+      `<span style="color:#38BDF8;font-weight:600">${k.create_requested || 0}</span>`,
+      `<span style="color:var(--success);font-weight:600">${k.create_success || 0}</span>`,
+      `<span style="color:var(--danger);font-weight:600">${k.create_failed || 0}</span>`,
+      `<span style="color:#A855F7;font-weight:600">${k.download_success || 0}</span>`,
+      `<span style="font-weight:700">${rate}</span>`
+    ];
+  });
+
+  container.innerHTML = table(['Khóa API / Ứng Dụng', 'Mã Khóa (Prefix)', 'Tổng Tool Calls', 'Số Lần Tạo', 'Tạo Thành Công', 'Tạo Thất Bại', 'Số Lần Tải Về', 'Tỉ Lệ Thành Công'], rows);
+}
+
+function renderMcpKeysTable() {
+  const container = q('#mcpKeysTableContainer');
+  if (!container) return;
+
+  const rows = mcpKeysList.map(k => {
+    const isSelected = k.id === mcpSelectedKeyId;
+    const isRevoked = k.status === 'revoked';
+    const statusBadge = isRevoked
+      ? '<span style="color:var(--danger);background:var(--danger-light);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">Revoked</span>'
+      : '<span style="color:var(--success);background:var(--success-light);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">Active</span>';
+
+    const secretDisplay = (mcpOneTimeSecret && k.id === mcpSelectedKeyId)
+      ? `<code style="color:var(--warning);font-weight:700">${esc(mcpOneTimeSecret)}</code> <button class="btn btn-mini press" onclick="copy('${mcpOneTimeSecret}');toast('Đã copy', 'Đã lưu API Key vào clipboard', 'success')"><i class="bi bi-clipboard"></i></button>`
+      : `<code style="color:var(--ink-2)">${esc(k.prefix || 'dolamcp_...')}</code>`;
+
+    const selectBtn = (!isRevoked)
+      ? `<button class="btn btn-mini press ${isSelected ? 'btn-p' : ''}" style="margin-right:6px" onclick="selectMcpKey('${k.id}')">
+          <i class="bi ${isSelected ? 'bi-check2-circle' : 'bi-cursor'}"></i> ${isSelected ? 'Đang chọn' : 'Chọn'}
+         </button>`
+      : '';
+
+    const revokeBtn = (!isRevoked)
+      ? `<button class="btn btn-mini btn-danger press" onclick="revokeMcpKey('${k.id}')" title="Thu hồi key"><i class="bi bi-slash-circle"></i> Revoke</button>`
+      : '<span style="color:var(--ink-3);font-size:11px">Đã thu hồi</span>';
+
+    return [
+      `<strong>${esc(k.name || 'MCP Client')}</strong>`,
+      secretDisplay,
+      statusBadge,
+      `<span style="font-size:11.5px;color:var(--ink-2)">${fmt(k.createdAt)}</span>`,
+      `<span style="font-size:11.5px;color:var(--ink-2)">${k.lastUsedAt ? fmt(k.lastUsedAt) : 'Chưa dùng'}</span>`,
+      `<div style="display:flex;align-items:center">${selectBtn}${revokeBtn}</div>`
+    ];
+  });
+
+  container.innerHTML = table(['Tên Định Danh', 'Mã Khóa (Prefix)', 'Trạng Thái', 'Ngày Tạo', 'Lần Dùng Cuối', 'Thao Tác'], rows);
+}
+
+function getActiveMcpKeyString() {
+  const selected = mcpKeysList.find(k => k.id === mcpSelectedKeyId);
+  if (selected && mcpOneTimeSecret && selected.id === mcpSelectedKeyId) {
+    return mcpOneTimeSecret;
+  }
+  return selected ? (selected.prefix || 'YOUR_MCP_API_KEY') : 'YOUR_MCP_API_KEY';
+}
+
+function selectMcpKey(id) {
+  mcpSelectedKeyId = id;
+  renderMcpKeysTable();
+  renderMcpSetupGuide();
+  toast('Đã chọn key', 'Đã tự động cập nhật API Key vào cấu hình Setup Guide', 'info');
+}
+
+function selectMcpClient(client) {
+  mcpSelectedClient = client;
+  document.querySelectorAll('#mcpClientTabs button').forEach(b => {
+    b.classList.toggle('btn-p', b.dataset.client === client);
+  });
+  renderMcpSetupGuide();
+}
+
+function renderMcpSetupGuide() {
+  const endpoint = `${window.location.origin}/mcp`;
+  const keyStr = getActiveMcpKeyString();
+  const slug = 'dola-render-gateway';
+
+  const clientInfo = {
+    claude: {
+      title: 'Claude Desktop Configuration',
+      hint: 'macOS: ~/Library/Application Support/Claude/claude_desktop_config.json | Windows: %APPDATA%\\Claude\\claude_desktop_config.json',
+      snippet: JSON.stringify({
+        mcpServers: {
+          [slug]: {
+            url: endpoint,
+            headers: {
+              "x-api-key": keyStr
+            }
+          }
+        }
+      }, null, 2)
+    },
+    cursor: {
+      title: 'Cursor IDE (Features > MCP Servers)',
+      hint: 'Thêm vào settings MCP hoặc file ~/.cursor/mcp.json',
+      snippet: JSON.stringify({
+        mcpServers: {
+          [slug]: {
+            url: endpoint,
+            headers: {
+              "x-api-key": keyStr
+            }
+          }
+        }
+      }, null, 2)
+    },
+    chatgpt: {
+      title: 'ChatGPT Custom Connector (Streamable HTTP)',
+      hint: 'Nhập thông tin kết nối thủ công trong cài đặt MCP / Action',
+      snippet: `Server URL: ${endpoint}\nTransport: Streamable HTTP\nAuthentication: Custom header\nHeader Name: x-api-key\nHeader Value: ${keyStr}`
+    },
+    vscode: {
+      title: 'VS Code (Claude Dev / Cline / Roo Code)',
+      hint: 'Thêm vào settings.json của extension MCP trong VS Code',
+      snippet: JSON.stringify({
+        servers: {
+          [slug]: {
+            type: "http",
+            url: endpoint,
+            headers: {
+              "x-api-key": keyStr
+            }
+          }
+        }
+      }, null, 2)
+    },
+    codex: {
+      title: 'Codex CLI / Terminal Bridge',
+      hint: 'Chạy lệnh này trong Terminal để liên kết Codex với Dola Gateway',
+      snippet: `export DOLA_MCP_API_KEY="${keyStr}"\ncodex mcp add ${slug} --url ${endpoint} --bearer-token-env-var DOLA_MCP_API_KEY`
+    }
+  };
+
+  const curr = clientInfo[mcpSelectedClient] || clientInfo.claude;
+  q('#mcpSnippetTitle').textContent = curr.title;
+  q('#mcpSnippetHint').textContent = curr.hint;
+  q('#mcpSnippetCode').textContent = curr.snippet;
+}
+
+function copyMcpEndpoint() {
+  const ep = `${window.location.origin}/mcp`;
+  copy(ep);
+  toast('Đã copy Endpoint', ep, 'success');
+}
+
+function copyMcpClientSnippet() {
+  const code = q('#mcpSnippetCode').textContent;
+  copy(code);
+  toast('Đã copy cấu hình', 'Đã sao chép cấu hình MCP vào clipboard', 'success');
+}
+
+function openCreateMcpKey() {
+  showDlg(`<h2>Tạo Managed MCP API Key Mới</h2>
+    <p style="font-size:12px;color:var(--ink-2);margin-bottom:12px">Key được tạo bằng CSPRNG 256-bit chuẩn, tiền tố <code style="color:var(--primary-dark)">dolamcp_</code>, chỉ hiển thị secret 1 lần.</p>
+    <label>Tên định danh ứng dụng (Ví dụ: Claude Desktop, Cursor Mac, ChatGPT Agent...)</label>
+    <input id="f_mcp_kname" placeholder="Ví dụ: Claude Desktop MacOS" value="Claude Desktop">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn press" onclick="hide('dlg')">Hủy</button>
+      <button class="btn btn-p press" onclick="submitCreateMcpKey()"><i class="bi bi-key-fill"></i> Tạo Khóa Mới</button>
+    </div>`);
+}
+
+async function submitCreateMcpKey() {
+  const name = q('#f_mcp_kname').value.trim() || 'MCP Assistant';
+  try {
+    const res = await api('/api/mcp/keys', {
+      method: 'POST',
+      body: { name }
+    });
+    hide('dlg');
+
+    mcpOneTimeSecret = res.apiKey;
+    mcpSelectedKeyId = res.key.id;
+
+    // Show persistent one-time secret card
+    q('#mcpOneTimeSecretDisplay').textContent = mcpOneTimeSecret;
+    q('#mcpOneTimeSecretCard').style.display = 'block';
+
+    toast('Đã tạo API Key thành công', 'Hãy sao chép ngay mã khóa được hiển thị', 'warning');
+    await loadMcp();
+  } catch(e) {
+    alert('Lỗi tạo MCP key: ' + e.message);
+  }
+}
+
+function copyMcpOneTimeSecret() {
+  if (mcpOneTimeSecret) {
+    copy(mcpOneTimeSecret);
+    toast('Đã sao chép', 'Đã lưu secret key vào clipboard', 'success');
+  }
+}
+
+function hideMcpOneTimeSecret() {
+  q('#mcpOneTimeSecretCard').style.display = 'none';
+}
+
+async function revokeMcpKey(id) {
+  if (!confirm('Bạn có chắc chắn muốn thu hồi MCP API Key này? Tất cả AI Assistant đang dùng key này sẽ bị ngắt kết nối ngay lập tức.')) return;
+  try {
+    await api('/api/mcp/keys/' + encodeURIComponent(id), { method: 'DELETE' });
+    toast('Đã thu hồi', 'MCP API Key đã bị vô hiệu hóa', 'info');
+    if (mcpSelectedKeyId === id) {
+      mcpSelectedKeyId = '';
+    }
+    loadMcp();
+  } catch(e) {
+    alert('Lỗi thu hồi key: ' + e.message);
+  }
+}
+
+function renderMcpCatalog() {
+  const container = q('#mcpCatalogList');
+  if (!container) return;
+
+  const tools = [
+    {
+      name: 'dola_create_video',
+      desc: 'Tạo tác vụ render video AI mới vào hàng đợi pool.',
+      params: 'prompt (string, bắt buộc), ratio (16:9, 9:16...), duration (10, 15, 30s), model, reference_images'
+    },
+    {
+      name: 'dola_get_task_status',
+      desc: 'Tra cứu trạng thái tác vụ, tiến độ và link video MP4 đã render xong.',
+      params: 'task_id (string, bắt buộc)'
+    },
+    {
+      name: 'dola_list_tasks',
+      desc: 'Lấy danh sách các tác vụ render video gần đây trong hàng đợi.',
+      params: 'limit (integer, mặc định 10)'
+    },
+    {
+      name: 'dola_list_accounts',
+      desc: 'Kiểm tra danh sách tài khoản Google/Dola trong pool và trạng thái quota.',
+      params: 'Không có tham số bắt buộc'
+    }
+  ];
+
+  container.innerHTML = tools.map(t => `
+    <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <code style="font-size:12.5px;font-weight:700;color:var(--primary-dark)">${t.name}</code>
+        <button class="btn btn-mini press" onclick="setPlaygroundTool('${t.name}')"><i class="bi bi-play-fill"></i> Thử ngay</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--ink-2);margin-bottom:6px">${t.desc}</p>
+      <div style="font-size:10.5px;color:var(--ink-3);font-family:ui-monospace,monospace"><i class="bi bi-braces"></i> ${t.params}</div>
+    </div>
+  `).join('');
+}
+
+function setPlaygroundTool(toolName) {
+  const sel = q('#mcpPlaygroundTool');
+  if (sel) {
+    sel.value = toolName;
+    onPlaygroundToolChange();
+  }
+}
+
+function onPlaygroundToolChange() {
+  const tool = q('#mcpPlaygroundTool').value;
+  const argsMap = {
+    dola_list_accounts: '{}',
+    dola_list_tasks: '{\n  "limit": 5\n}',
+    dola_get_task_status: '{\n  "task_id": "paste_task_id_here"\n}',
+    dola_create_video: '{\n  "prompt": "Cinematic shot of futuristic cyber city at sunset, neon reflections",\n  "ratio": "16:9",\n  "duration": 10\n}'
+  };
+  q('#mcpPlaygroundArgs').value = argsMap[tool] || '{}';
+}
+
+async function runMcpPlayground() {
+  const tool = q('#mcpPlaygroundTool').value;
+  let args = {};
+  try {
+    args = JSON.parse(q('#mcpPlaygroundArgs').value || '{}');
+  } catch(e) {
+    return alert('Arguments JSON không hợp lệ: ' + e.message);
+  }
+
+  const btn = q('#btnRunMcpPlayground');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Đang gọi MCP...';
+  q('#mcpPlaygroundOutput').textContent = 'Đang gửi JSON-RPC request tới /mcp...';
+
+  const t0 = performance.now();
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (mcpOneTimeSecret) {
+      headers['x-api-key'] = mcpOneTimeSecret;
+    } else {
+      const activeKey = mcpKeysList.find(k => k.id === mcpSelectedKeyId && k.status === 'active');
+      if (adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+    }
+
+    const payload = {
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tools/call',
+      params: {
+        name: tool,
+        arguments: args
+      }
+    };
+
+    const res = await fetch('/mcp', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    const elapsed = Math.round(performance.now() - t0);
+    q('#mcpPlaygroundTime').textContent = `Độ trễ: ${elapsed}ms · HTTP ${res.status}`;
+
+    const json = await res.json();
+    q('#mcpPlaygroundOutput').textContent = JSON.stringify(json, null, 2);
+    toast('MCP Playground', `Gọi thành công ${tool} (${elapsed}ms)`, 'success');
+    loadMcp();
+  } catch(e) {
+    const elapsed = Math.round(performance.now() - t0);
+    q('#mcpPlaygroundTime').textContent = `Lỗi: ${elapsed}ms`;
+    q('#mcpPlaygroundOutput').textContent = 'Lỗi gọi MCP: ' + e.message;
+    toast('Lỗi MCP Playground', e.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send-fill"></i> Gửi Yêu Cầu MCP';
+  }
+}
+
+function renderMcpActivity() {
+  const container = q('#mcpActivityTableContainer');
+  if (!container) return;
+
+  const events = mcpUsageData?.recentActivity || [];
+  if (!events.length) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--ink-3)">Chưa có nhật ký hoạt động MCP nào.</div>';
+    return;
+  }
+
+  const rows = events.map(e => {
+    const isSuccess = e.status === 'success';
+    const statusBadge = isSuccess
+      ? '<span style="color:var(--success);background:var(--success-light);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">success</span>'
+      : '<span style="color:var(--danger);background:var(--danger-light);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">failed</span>';
+
+    return [
+      `<code style="font-weight:700;color:var(--primary-dark)">${esc(e.tool || 'request')}</code>`,
+      `<code style="color:var(--ink-2)">${esc(e.keyPreview || '—')}</code>`,
+      `<span style="font-size:11.5px;color:var(--ink-2)">${fmt(e.time)}</span>`,
+      statusBadge,
+      `<span style="font-size:11.5px;color:var(--ink-2)">${e.latencyMs || 0} ms</span>`
+    ];
+  });
+
+  container.innerHTML = table(['Tool / Method', 'API Key', 'Thời Gian', 'Trạng Thái', 'Độ Trễ'], rows);
+}
+
+window.loadMcp = loadMcp;
+window.copyMcpEndpoint = copyMcpEndpoint;
+window.copyMcpClientSnippet = copyMcpClientSnippet;
+window.copyMcpOneTimeSecret = copyMcpOneTimeSecret;
+window.hideMcpOneTimeSecret = hideMcpOneTimeSecret;
+window.openCreateMcpKey = openCreateMcpKey;
+window.submitCreateMcpKey = submitCreateMcpKey;
+window.revokeMcpKey = revokeMcpKey;
+window.selectMcpKey = selectMcpKey;
+window.selectMcpClient = selectMcpClient;
+window.changeMcpPeriod = changeMcpPeriod;
+window.setPlaygroundTool = setPlaygroundTool;
+window.onPlaygroundToolChange = onPlaygroundToolChange;
+window.runMcpPlayground = runMcpPlayground;
 
 /* Boot & Polling */
 (async function boot(){

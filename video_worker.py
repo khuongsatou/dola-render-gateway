@@ -2,6 +2,7 @@
 import asyncio
 import base64
 import json
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -144,7 +145,9 @@ async def _download(url: str, account: str) -> Path:
     """Downloads video to DOWNLOAD_DIR and returns local path."""
     dl_dir = Path(config.DOWNLOAD_DIR)
     dl_dir.mkdir(parents=True, exist_ok=True)
-    fname = dl_dir / f"{account}_{time.strftime('%Y%m%d_%H%M%S')}.mp4"
+    # Random suffix keeps stored artifacts unguessable even if account names leak.
+    token = secrets.token_hex(8)
+    fname = dl_dir / f"{account}_{time.strftime('%Y%m%d_%H%M%S')}_{token}.mp4"
     timeout = aiohttp.ClientTimeout(total=300)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url, proxy=config.PROXY or None) as resp:

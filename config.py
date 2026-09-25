@@ -20,8 +20,24 @@ _load_local_env()
 HOST = os.getenv("DOLA_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOLA_PORT", "8000"))
 
-# Service API keys (comma-separated; empty = no auth, local debug only)
+# Bind addresses that only accept connections from the local machine.
+LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+
+
+def is_loopback_host(host: str | None) -> bool:
+    """True when the configured bind address only accepts local connections."""
+    return (host or "").strip().lower().strip("[]") in LOOPBACK_HOSTS
+
+
+# Explicit opt-in for unauthenticated loopback development. Never enable this
+# on a host that can accept remote connections.
+ALLOW_UNAUTHENTICATED = os.getenv("DOLA_ALLOW_UNAUTHENTICATED", "0") == "1"
+
+# Service API keys (comma-separated). Empty is only tolerated on a loopback bind.
 API_KEYS = [k.strip() for k in os.getenv("DOLA_API_KEYS", "").split(",") if k.strip()]
+
+# Longest accepted generation prompt (characters)
+PROMPT_MAX_LENGTH = int(os.getenv("DOLA_PROMPT_MAX_LENGTH", "4000"))
 
 # Account pool cookie file (one dola.com cookie per line)
 COOKIES_FILE = os.getenv("DOLA_COOKIES_FILE", "cookies.txt")
@@ -56,7 +72,7 @@ INCOGNITO = os.getenv("DOLA_INCOGNITO", "0") == "1"
 # Base public URL for returning static video links
 PUBLIC_BASE = os.getenv("DOLA_PUBLIC_BASE", f"http://127.0.0.1:{PORT}")
 
-# Admin web dashboard password (empty = no auth)
+# Admin web dashboard password (empty is only tolerated on a loopback bind)
 ADMIN_KEY = os.getenv("DOLA_ADMIN_KEY", "")
 
 # Dola 30s / Watermark Removal Chromium extension path
@@ -71,8 +87,22 @@ VIDEO_REQUIRED_POINTS = int(os.getenv("DOLA_VIDEO_REQUIRED_POINTS", "2"))
 
 # Public reference image download limits
 REFERENCE_IMAGE_MAX_BYTES = int(os.getenv("DOLA_REFERENCE_IMAGE_MAX_BYTES", str(15 * 1024 * 1024)))
+REFERENCE_IMAGE_MAX_TOTAL_BYTES = int(
+    os.getenv("DOLA_REFERENCE_IMAGE_MAX_TOTAL_BYTES", str(60 * 1024 * 1024))
+)
+REFERENCE_DOWNLOAD_CONCURRENCY = int(os.getenv("DOLA_REFERENCE_DOWNLOAD_CONCURRENCY", "4"))
+# Aggregate temporary storage held by in-flight reference downloads
+REFERENCE_TEMP_BUDGET_BYTES = int(
+    os.getenv("DOLA_REFERENCE_TEMP_BUDGET_BYTES", str(512 * 1024 * 1024))
+)
+# Route reference downloads through DOLA_PROXY. Off by default because the proxy
+# resolves the target hostname itself, which bypasses local DNS pinning.
+REFERENCE_USE_PROXY = os.getenv("DOLA_REFERENCE_USE_PROXY", "0") == "1"
 REFERENCE_DOWNLOAD_TIMEOUT = int(os.getenv("DOLA_REFERENCE_DOWNLOAD_TIMEOUT", "60"))
 REFERENCE_IMAGE_MAX_COUNT = int(os.getenv("DOLA_REFERENCE_IMAGE_MAX_COUNT", "30"))
 
 # Extended generation window for reference image tasks (seconds)
 REFERENCE_VIDEO_TIMEOUT = int(os.getenv("DOLA_REFERENCE_VIDEO_TIMEOUT", "900"))
+
+# Lifetime of signed /videos/<file> download links handed to the dashboard (seconds)
+MEDIA_TOKEN_TTL = int(os.getenv("DOLA_MEDIA_TOKEN_TTL", "3600"))

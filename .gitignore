@@ -14,9 +14,12 @@ accounts/
 *.db-journal
 *.db-wal
 *.db-shm
+data/
+
 
 # --- generated media ---
 downloads/
+blockbuster_output/
 
 # --- probe / debug artifacts (contain live session snippets) ---
 /*.html

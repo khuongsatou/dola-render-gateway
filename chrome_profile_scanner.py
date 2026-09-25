@@ -324,11 +324,14 @@ def import_chrome_profile(
     db_path: str = "pool_usage.db",
 ) -> dict:
     """Imports a local Chrome profile into Dola accounts pool via lightweight copy."""
-    root = chrome_root or get_default_chrome_root()
-    acc_dir = accounts_dir or Path("accounts")
+    root = (chrome_root or get_default_chrome_root()).resolve()
+    acc_dir = (accounts_dir or Path("accounts")).resolve()
     acc_dir.mkdir(parents=True, exist_ok=True)
 
-    src_dir = root / directory
+    # Directory traversal guard: only profiles that resolve inside the Chrome root are readable.
+    src_dir = (root / directory).resolve()
+    if src_dir == root or root not in src_dir.parents:
+        raise ValueError(f"Invalid Chrome profile directory '{directory}'")
     if not src_dir.exists() or not src_dir.is_dir():
         raise FileNotFoundError(f"Chrome profile directory not found: {src_dir}")
 
@@ -337,7 +340,7 @@ def import_chrome_profile(
 
     if target_name:
         clean_name = target_name.strip()
-        if not NAME_RE.match(clean_name):
+        if not NAME_RE.match(clean_name) or ".." in clean_name:
             raise ValueError(f"Invalid account name '{clean_name}'. Must match {NAME_RE.pattern}")
         if clean_name in existing:
             raise ValueError(f"Account name '{clean_name}' already exists in pool.")
@@ -350,7 +353,10 @@ def import_chrome_profile(
                 seed = f"{user_part}_{seed}"
         acc_name = sanitize_account_name(seed, existing)
 
-    dest_dir = acc_dir / acc_name
+    # Second traversal guard: even a mangled name must stay one level under accounts/.
+    dest_dir = (acc_dir / acc_name).resolve()
+    if dest_dir.parent != acc_dir:
+        raise ValueError(f"Invalid account name '{acc_name}'")
     dest_default = dest_dir / "Default"
     dest_default.mkdir(parents=True, exist_ok=True)
 

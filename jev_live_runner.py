@@ -20,6 +20,7 @@ from account_locks import acquire_account_execution, release_account_execution
 import config
 from browser import cookie_value, launch_account_context
 from dola_element_locator import DolaElementLocator
+from media import signed_video_path
 from store import TaskStore
 from video_worker import POLL_JS, _download, extract_unwatermarked_url
 from video_worker_ui import find_captcha_frame, solve_slider
@@ -583,7 +584,10 @@ class JevLiveSession:
 
                                 # Download locally
                                 local_p = await _download(unwatermarked, self.account)
-                                video_web_url = f"/videos/{local_p.name}"
+                                plain_video_url = f"/videos/{local_p.name}"
+                                # Only the live broadcast needs a signed link; the stored
+                                # task keeps the canonical path for ownership lookups.
+                                video_web_url = signed_video_path(local_p.name)
 
                                 f_finish = await self._capture_frame_base64(page)
                                 await self.broadcast("frame", {
@@ -632,7 +636,7 @@ class JevLiveSession:
                             t_store.update(
                                 task_id=tid,
                                 status="completed",
-                                video_url=video_result["video_url"],
+                                video_url=plain_video_url,
                                 conversation_id=conv_id,
                                 finished_at=time.time(),
                             )
