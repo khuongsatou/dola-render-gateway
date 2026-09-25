@@ -11,28 +11,30 @@ from store import TaskStore
 # Định nghĩa Prompt chi tiết cho các Scene theo giáo án mtips5s_cut_scene & shotlist blockbuster
 SCENE_PROMPTS = {
     1: {
-        "title": "Scene 1 - Hang Đá & Nỗi Sợ Dã Thú",
+        "title": "Scene 1 - Hang Đá & Nỗi Sợ Dã Thú (4-Cut Multi-Shot Sequence)",
         "folder": "scene_01_hang_đá_nỗi_sợ_dã_thú",
         "prompt": (
-            "Cinematic slow push-in: prehistoric dark limestone cave interior during a violent monsoon rainstorm at twilight. "
-            "Outside the cave entrance, torrential rain lashes prehistoric tropical jungle canopy with jagged lightning illuminating rain streaks. "
-            "Inside the cavern, a primitive hunter with sun-weathered bronze skin and dark hair tied back with rawhide sits shivering against cold rock. "
-            "He breathes heavily, his chest heaving with deep tension, eyes hyper-vigilant scanning the dark jungle. "
-            "Outside in the rainy mist, two predatory glowing amber eyes of a sabertooth cat briefly gleam before disappearing into shadows. "
-            "Cinematic chiaroscuro lighting, 7000K cold slate blue ambience, wet rock reflections, 35mm anamorphic, shallow depth of field, 8K ultra-detailed."
+            "Cinematic montage sequence of 4 dynamic continuous hard cuts with intentional framing transitions: "
+            "[Cut 1: 0.0s-2.5s, Wide Establishing Shot (WS), High-Angle, 24mm anamorphic]: Vast dark prehistoric limestone cave entrance engulfed by torrential monsoon rain in primeval jungle canopy, oppressive negative space shadows, jagged blue lightning flash illuminating distant stalactites. "
+            "[Hard cut to Cut 2: 2.5s-5.5s, Medium Shot (MS), Eye-Level, 50mm]: Primitive hunter Kael huddled against wet cave rock, arms clutching knees, shivering from cold with heaving chest and tense muscles, eyeline locked toward cave entrance left. "
+            "[Reaction cut to Cut 3: 5.5s-8.0s, Dramatic Close-Up (CU), 85mm portrait]: Tight framing on Kael's weathered face, mud and tribal ash on cheekbones, eyes dilated in primal dread, ragged heavy breathing. "
+            "[Dynamic cut to Cut 4: 8.0s-10.0s, Special Over-The-Shoulder Macro POV]: Low-angle view looking over Kael's shivering shoulder toward rainy cave mouth; two predatory glowing amber eyes of a sabertooth cat flash ominously in misty darkness then vanish. "
+            "Photorealistic 8K, 7000K cold slate blue ambience, chiaroscuro lighting, Panavision 16:9, hyper-realistic textures."
         ),
-        "target_file": "sc01_hang_da_noi_so_10s_dola.mp4"
+        "target_file": "sc01_hang_da_noi_so_multishot_10s_dola.mp4"
     },
     2: {
-        "title": "Scene 2 - Món Quà Từ Sấm Sét & Ngọn Lửa Khởi Nguyên",
+        "title": "Scene 2 - Món Quà Từ Sấm Sét & Ngọn Lửa Khởi Nguyên (4-Cut Multi-Shot Sequence)",
         "folder": "scene_02_ngọn_lửa_khởi_nguyên",
         "prompt": (
-            "Cinematic wide establishing shot with dynamic camera shake: a colossal prehistoric ancient banyan tree towering in a jungle clearing under torrential storm rain. "
-            "Suddenly a blinding electric-cyan lightning bolt violently strikes the tree crown, exploding the wood in a massive shower of sparks and debris. "
-            "Fierce golden-orange flames erupt instantly up the trunk, billowing thick black smoke against the storm clouds while primal sparks drift through the heavy rain. "
-            "High-contrast lighting transition from 9000K electric blue lightning flash to 2200K roaring orange firelight, 35mm Panavision anamorphic, photorealistic 8K."
+            "Cinematic montage sequence of 4 dynamic continuous hard cuts with intentional framing transitions: "
+            "[Cut 1: 0.0s-2.5s, Wide Establishing Shot (WS), 24mm ultra-wide]: Colossal prehistoric ancient banyan tree towering in a clearing under violent storm clouds, torrential rain whipping horizontally across primeval canopy. "
+            "[Cut on Impact to Cut 2: 2.5s-5.5s, Medium Action Shot (MS) with Camera Shake, 35mm]: Massive blinding electric-cyan lightning bolt violently strikes tree crown, exploding the trunk with violent shockwave and burst of orange sparks and debris. "
+            "[Hard cut to Cut 3: 5.5s-8.0s, Extreme Close-Up (ECU) Macro Detail, 100mm]: Splintering burning bark sizzling in rain, thick boiling resin, bright golden-orange fire erupting intensely along wood fissures with flying embers. "
+            "[Dynamic cut to Cut 4: 8.0s-10.0s, Special Dutch Low-Angle Hero Shot, 28mm]: Dutch tilt upward angle behind Kael; silhouette of primitive hunter standing awe-struck staring up at towering raging tree beacon, warm 2200K firelight bathing his muscular frame as birds scatter into storm. "
+            "Photorealistic 8K, 9000K cyan flash yielding to 2200K fiery blaze, Panavision 16:9, master film quality."
         ),
-        "target_file": "sc02_ngon_lua_khoi_nguyen_10s_dola.mp4"
+        "target_file": "sc02_ngon_lua_khoi_nguyen_multishot_10s_dola.mp4"
     },
     3: {
         "title": "Scene 3 - Cọ Xát Giáng Lửa Bùng Cháy",

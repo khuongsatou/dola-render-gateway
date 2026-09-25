@@ -8,4 +8,10 @@ if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
 fi
 
-exec uvicorn server:app --host "${DOLA_HOST:-0.0.0.0}" --port "${DOLA_PORT:-8000}"
+if [ -f ".env.local" ]; then
+    set -a
+    source .env.local
+    set +a
+fi
+
+exec uvicorn server:app --host "${DOLA_HOST:-127.0.0.1}" --port "${DOLA_PORT:-8000}"
