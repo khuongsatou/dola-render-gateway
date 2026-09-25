@@ -798,6 +798,55 @@ td .prompt {
   backdrop-filter: blur(20px);
   border: 1px solid var(--line);
 }
+
+/* Job Pipeline & Task Queue Styles */
+.job-prompt-text {
+  max-width: 320px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12.5px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.job-prompt-text:hover {
+  color: var(--primary-dark);
+}
+.page-btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s var(--spring);
+}
+.page-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: rgba(94, 106, 210, 0.08);
+}
+.page-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(94, 106, 210, 0.4);
+}
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -989,14 +1038,144 @@ td .prompt {
     </div>
   </section>
 
-  <!-- TAB 3: TASK QUEUE -->
+  <!-- TAB 3: TASK QUEUE & JOB PIPELINE MANAGEMENT -->
   <section id="tab-tasks" style="display:none">
-    <div class="glass" style="padding:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3 style="font-size:14px;font-weight:700">Task Queue (Last 50 Jobs)</h3>
-        <span style="font-size:12px;color:var(--ink-2)"><i class="bi bi-clock-history"></i> Tự động đồng bộ mỗi 10s</span>
+    <!-- Header Banner -->
+    <div class="glass" style="padding:22px;margin-bottom:20px;border:1px solid rgba(124,58,237,0.25);background:linear-gradient(135deg,rgba(124,58,237,0.06) 0%,rgba(56,189,248,0.04) 100%);box-shadow:0 8px 24px rgba(0,0,0,0.14)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#7C3AED,#6366F1);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(124,58,237,0.35)">
+            <i class="bi bi-cpu-fill"></i>
+          </span>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#A855F7;background:rgba(168,85,247,0.12);padding:2px 8px;border-radius:99px;border:1px solid rgba(168,85,247,0.25)">
+                JOB PIPELINE & TASK QUEUE
+              </span>
+              <span style="font-size:11px;color:var(--ink-2);display:inline-flex;align-items:center;gap:4px">
+                <i class="bi bi-clock-history"></i> Tự động đồng bộ 10s
+              </span>
+            </div>
+            <h2 style="font-size:18px;font-weight:700;margin-top:2px;letter-spacing:-0.2px">Quản Lý Tác Vụ Video (Job Management)</h2>
+            <p style="font-size:12px;color:var(--ink-2);margin-top:2px">
+              Theo dõi tiến trình render, lọc trạng thái, tìm kiếm prompt, phân trang và dọn dẹp hàng đợi tác vụ.
+            </p>
+          </div>
+        </div>
+        <!-- Global Pipeline Action Buttons -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-mini press" onclick="loadTasks(true)" title="Tải lại dữ liệu ngay lập tức">
+            <i class="bi bi-arrow-repeat"></i> Làm Mới
+          </button>
+          <button class="btn btn-mini btn-danger press" onclick="clearFailedTasks()" title="Xóa tất cả các task bị lỗi">
+            <i class="bi bi-trash-fill"></i> Dọn Dẹp Lỗi
+          </button>
+          <button class="btn btn-mini press" style="border-color:rgba(52,199,89,0.3);color:var(--success)" onclick="clearCompletedTasks()" title="Xóa lịch sử các task đã xong (video trên đĩa vẫn an toàn)">
+            <i class="bi bi-check2-all"></i> Dọn Dẹp Đã Xong
+          </button>
+          <button id="btnBulkDeleteSelected" class="btn btn-mini btn-danger press" style="display:none;font-weight:700" onclick="bulkDeleteSelectedTasks()">
+            <i class="bi bi-trash3-fill"></i> Xóa Đã Chọn (<span id="taskSelectedCount">0</span>)
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Quick Metrics KPI Cards Grid -->
+    <div class="cards" style="margin-bottom:20px" id="taskKpiCards">
+      <div class="glass stat-card">
+        <div class="l"><i class="bi bi-layers-fill text-primary"></i> Tổng Số Jobs</div>
+        <div class="v" id="kpiTotalJobs">0</div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:2px">Toàn bộ tác vụ đã ghi nhận</div>
+      </div>
+      <div class="glass stat-card" style="border-color:rgba(255,149,0,0.3)">
+        <div class="l" style="color:var(--warning)"><i class="bi bi-arrow-repeat animate-spin"></i> Đang Xử Lý</div>
+        <div class="v" style="color:var(--warning)" id="kpiActiveJobs">0</div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:2px">Đang render trên trình duyệt</div>
+      </div>
+      <div class="glass stat-card" style="border-color:rgba(94,106,210,0.3)">
+        <div class="l" style="color:var(--primary-dark)"><i class="bi bi-hourglass-split"></i> Hàng Đợi (Queued)</div>
+        <div class="v" style="color:var(--primary-dark)" id="kpiQueuedJobs">0</div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:2px">Đang chờ tài khoản rảnh</div>
+      </div>
+      <div class="glass stat-card" style="border-color:rgba(52,199,89,0.3)">
+        <div class="l" style="color:var(--success)"><i class="bi bi-check-circle-fill"></i> Hoàn Tất / Thất Bại</div>
+        <div class="v" style="font-size:24px;display:flex;align-items:baseline;gap:8px">
+          <span style="color:var(--success)" id="kpiCompletedJobs">0</span>
+          <span style="font-size:16px;color:var(--ink-3)">/</span>
+          <span style="color:var(--danger);font-size:22px" id="kpiFailedJobs">0</span>
+          <span style="font-size:12px;font-weight:600;color:var(--ink-2);margin-left:auto" id="kpiSuccessRate">100%</span>
+        </div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:2px">Tỷ lệ hoàn thành công việc</div>
+      </div>
+    </div>
+
+    <!-- Main Table Container with Search, Filter & Pagination -->
+    <div class="glass" style="padding:20px">
+      <!-- Toolbar: Search & Filters -->
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line)">
+        <!-- Search Input -->
+        <div style="position:relative;flex:1;min-width:240px;max-width:380px">
+          <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:13px;pointer-events:none"></i>
+          <input id="taskSearchInput" type="text" placeholder="Tìm theo ID, Prompt, Account, Key…" oninput="onTaskSearchInput(this.value)" style="width:100%;height:34px;padding:0 30px 0 32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12.5px;font-family:inherit">
+          <button id="taskSearchClearBtn" type="button" onclick="clearTaskSearch()" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:13px"><i class="bi bi-x-circle-fill"></i></button>
+        </div>
+
+        <!-- Filter Controls -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <!-- Status Pill Tabs -->
+          <div class="pill-group" id="taskStatusFilterGroup" style="display:flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:2px">
+            <button type="button" class="btn btn-mini press on" data-status="all" onclick="setTaskStatusFilter('all')" style="padding:4px 9px;border:none;border-radius:6px">Tất cả</button>
+            <button type="button" class="btn btn-mini press" data-status="processing" onclick="setTaskStatusFilter('processing')" style="padding:4px 9px;border:none;border-radius:6px;color:#F5D77A"><span class="blink-dot" style="margin-right:3px"></span> Rendering</button>
+            <button type="button" class="btn btn-mini press" data-status="queued" onclick="setTaskStatusFilter('queued')" style="padding:4px 9px;border:none;border-radius:6px">Queued</button>
+            <button type="button" class="btn btn-mini press" data-status="completed" onclick="setTaskStatusFilter('completed')" style="padding:4px 9px;border:none;border-radius:6px;color:#7CDDAA">Done</button>
+            <button type="button" class="btn btn-mini press" data-status="failed" onclick="setTaskStatusFilter('failed')" style="padding:4px 9px;border:none;border-radius:6px;color:#F29B9B">Failed</button>
+          </div>
+
+          <!-- Account Filter -->
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-size:11.5px;color:var(--ink-2);font-weight:600">Account:</span>
+            <select id="taskAccountFilter" onchange="onTaskAccountChange(this.value)" style="height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="all">Tất cả tài khoản</option>
+            </select>
+          </div>
+
+          <!-- Duration Filter -->
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-size:11.5px;color:var(--ink-2);font-weight:600">Độ dài:</span>
+            <select id="taskDurationFilter" onchange="onTaskDurationChange(this.value)" style="height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="0">Tất cả</option>
+              <option value="10">10s</option>
+              <option value="15">15s</option>
+              <option value="30">30s (HD)</option>
+            </select>
+          </div>
+
+          <!-- Items Per Page -->
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-size:11.5px;color:var(--ink-2);font-weight:600">Xem:</span>
+            <select id="taskLimitSelect" onchange="onTaskLimitChange(this.value)" style="height:32px;padding:0 6px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px">
+              <option value="15">15</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <!-- Reset Filter Button -->
+          <button type="button" class="btn btn-mini press" onclick="resetTaskFilters()" title="Đặt lại toàn bộ bộ lọc">
+            <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+          </button>
+        </div>
+      </div>
+
+      <!-- Tasks Table -->
       <div id="tasksTable"></div>
+
+      <!-- Pagination Footer -->
+      <div id="taskPaginationBar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+        <div id="taskPaginationInfo" style="font-size:12px;color:var(--ink-2)">Đang nạp dữ liệu…</div>
+        <div id="taskPaginationControls" style="display:flex;align-items:center;gap:4px"></div>
+      </div>
     </div>
   </section>
 
@@ -1894,28 +2073,563 @@ async function submitAddAccount() {
   refresh();
 }
 
-/* ---- TAB 3: TASK QUEUE ---- */
-async function loadTasks() {
-  const r = await api('/api/admin/tasks?limit=50');
-  const sb = {
-    'queued': '<span class="badge b-gray">Queued</span>',
-    'processing': '<span class="badge b-orange pulse-running"><span class="blink-dot"></span> Rendering</span>',
-    'completed': '<span class="badge b-green"><i class="bi bi-check-circle-fill"></i> Done</span>',
-    'failed': '<span class="badge b-red"><i class="bi bi-x-circle-fill"></i> Failed</span>'
-  };
-  const rows = r.tasks.map(t => [
-    `<span style="font-family:monospace;font-size:11.5px;color:var(--primary-dark)">${t.id.replace('video_', '').slice(0, 10)}</span>`,
-    `<span class="prompt" title="${esc(t.prompt || '')}">${esc(t.prompt || '')}</span>`,
-    t.account ? `<strong style="font-family:monospace">${esc(t.account)}</strong>` : '-',
-    esc(t.api_key_name || '—'),
-    `<span class="badge b-blue">${(t.duration || 10)}s</span>`,
-    sb[t.status] || `<span class="badge b-gray">${esc(t.status)}</span>`,
-    fmt(t.created_at),
-    t.video_url
-      ? `<button class="btn btn-mini press" data-video-url="${esc(t.video_url)}" onclick="playVideo(this.dataset.videoUrl)"><i class="bi bi-play-fill"></i> Xem Video</button>`
-      : (t.status === 'failed' ? `<span style="color:var(--danger);font-size:11px" title="${esc(t.error || '')}">⚠ Lỗi: ${esc((t.error || '').slice(0, 24))}</span>` : '—')
-  ]);
-  q('#tasksTable').innerHTML = table(['Task ID', 'Prompt Nội Dung', 'Account', 'Client Key', 'Độ Dài', 'Trạng Thái', 'Thời Gian Tạo', 'Xem Kết Quả'], rows);
+/* ---- TAB 3: TASK QUEUE & JOB PIPELINE MANAGEMENT ---- */
+let taskFilterState = {
+  search: '',
+  status: 'all',
+  account: 'all',
+  duration: 0,
+  page: 1,
+  limit: 25,
+  selectedIds: new Set(),
+  cachedAccounts: []
+};
+let taskSearchDebounceTimer = null;
+let currentTasksData = [];
+
+async function loadTasks(keepSelection = true) {
+  try {
+    const params = new URLSearchParams({
+      page: taskFilterState.page,
+      limit: taskFilterState.limit
+    });
+    if (taskFilterState.status && taskFilterState.status !== 'all') {
+      params.set('status', taskFilterState.status);
+    }
+    if (taskFilterState.search) {
+      params.set('search', taskFilterState.search);
+    }
+    if (taskFilterState.account && taskFilterState.account !== 'all') {
+      params.set('account', taskFilterState.account);
+    }
+    if (taskFilterState.duration > 0) {
+      params.set('duration', taskFilterState.duration);
+    }
+
+    const r = await api('/api/admin/tasks?' + params.toString());
+    currentTasksData = r.tasks || [];
+
+    // 1. Update KPI Metrics Cards
+    if (r.stats) {
+      const tot = r.stats.total || 0;
+      const comp = r.stats.completed || 0;
+      const fail = r.stats.failed || 0;
+      const proc = r.stats.processing || 0;
+      const qd = r.stats.queued || 0;
+      const rate = tot > 0 ? Math.round((comp / tot) * 100) : 100;
+
+      const elTot = q('#kpiTotalJobs'); if (elTot) elTot.textContent = tot;
+      const elProc = q('#kpiActiveJobs'); if (elProc) elProc.textContent = proc;
+      const elQd = q('#kpiQueuedJobs'); if (elQd) elQd.textContent = qd;
+      const elComp = q('#kpiCompletedJobs'); if (elComp) elComp.textContent = comp;
+      const elFail = q('#kpiFailedJobs'); if (elFail) elFail.textContent = fail;
+      const elRate = q('#kpiSuccessRate');
+      if (elRate) {
+        elRate.textContent = rate + '%';
+        elRate.style.color = rate >= 80 ? 'var(--success)' : (rate >= 50 ? 'var(--warning)' : 'var(--danger)');
+      }
+    }
+
+    // 2. Populate Account Filter Dropdown dynamically
+    if (r.accounts && JSON.stringify(r.accounts) !== JSON.stringify(taskFilterState.cachedAccounts)) {
+      taskFilterState.cachedAccounts = r.accounts;
+      const sel = q('#taskAccountFilter');
+      if (sel) {
+        const curVal = taskFilterState.account;
+        sel.innerHTML = '<option value="all">Tất cả tài khoản</option>' +
+          r.accounts.map(a => `<option value="${esc(a)}" ${curVal === a ? 'selected' : ''}>${esc(a)}</option>`).join('');
+      }
+    }
+
+    // 3. Selection Sync
+    if (!keepSelection) taskFilterState.selectedIds.clear();
+    updateBulkDeleteUi();
+
+    // 4. Render Table
+    const tableContainer = q('#tasksTable');
+    if (!tableContainer) return;
+
+    if (!currentTasksData.length) {
+      tableContainer.innerHTML = `
+        <div style="text-align:center;padding:48px 16px;border:1px dashed var(--line);border-radius:12px;margin:10px 0">
+          <div style="font-size:36px;color:var(--ink-3);margin-bottom:10px"><i class="bi bi-inbox"></i></div>
+          <div style="font-weight:700;font-size:14px;color:var(--ink)">Không tìm thấy tác vụ nào phù hợp</div>
+          <div style="font-size:12px;color:var(--ink-2);margin-top:4px">Thử tìm kiếm với từ khóa khác hoặc xóa bớt các bộ lọc đang kích hoạt.</div>
+          <button class="btn btn-mini press" style="margin-top:14px" onclick="resetTaskFilters()"><i class="bi bi-arrow-counterclockwise"></i> Đặt lại bộ lọc</button>
+        </div>
+      `;
+    } else {
+      const rowsHtml = currentTasksData.map(t => {
+        const isSelected = taskFilterState.selectedIds.has(t.id);
+        const shortId = t.id.replace('video_', '').slice(0, 10);
+
+        let runtimeText = '—';
+        if (t.started_at && t.finished_at) {
+          const secs = Math.max(1, Math.round(t.finished_at - t.started_at));
+          runtimeText = secs < 60 ? `${secs}s` : `${Math.floor(secs/60)}m${secs%60}s`;
+        } else if (t.status === 'processing' && t.started_at) {
+          const secs = Math.max(1, Math.round((Date.now()/1000) - t.started_at));
+          runtimeText = `<span style="color:var(--warning);font-weight:600"><span class="blink-dot" style="margin-right:2px"></span>${secs}s</span>`;
+        }
+
+        const pct = Math.min(100, Math.max(0, parseInt(t.progress != null ? t.progress : (t.status === 'completed' ? 100 : 0))));
+
+        let statusHtml = '';
+        let barColor = '';
+        let barGlow = '';
+        if (t.status === 'processing') {
+          barColor = 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)';
+          barGlow = '0 0 10px rgba(245, 158, 11, 0.45)';
+          statusHtml = `<span class="badge b-orange pulse-running"><span class="blink-dot"></span> Rendering ${pct}%</span>`;
+        } else if (t.status === 'completed') {
+          barColor = 'linear-gradient(90deg, #10B981 0%, #34D399 100%)';
+          barGlow = '0 0 8px rgba(16, 185, 129, 0.35)';
+          statusHtml = '<span class="badge b-green"><i class="bi bi-check-circle-fill"></i> Hoàn tất 100%</span>';
+        } else if (t.status === 'failed') {
+          barColor = 'rgba(235, 87, 87, 0.65)';
+          barGlow = 'none';
+          statusHtml = `<span class="badge b-red" style="cursor:pointer" onclick="viewTaskDetail('${t.id}')" title="${esc(t.error || '')}"><i class="bi bi-x-circle-fill"></i> Thất bại (0%)</span>`;
+        } else {
+          barColor = 'rgba(255, 255, 255, 0.2)';
+          barGlow = 'none';
+          statusHtml = '<span class="badge b-gray"><i class="bi bi-hourglass-split"></i> Queued (0%)</span>';
+        }
+
+        const progressTrackHtml = `
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);position:relative">
+              <div style="height:100%;width:${t.status === 'failed' ? 100 : pct}%;background:${barColor};box-shadow:${barGlow};border-radius:99px;transition:width 0.4s ease"></div>
+            </div>
+            <span style="font-size:10.5px;font-weight:700;font-family:monospace;color:${t.status === 'completed' ? 'var(--success)' : (t.status === 'processing' ? 'var(--warning)' : (t.status === 'failed' ? 'var(--danger)' : 'var(--ink-3)'))};min-width:32px;text-align:right">
+              ${t.status === 'failed' ? 'ERR' : `${pct}%`}
+            </span>
+          </div>
+        `;
+
+        let refCount = 0;
+        try {
+          const arr = JSON.parse(t.reference_images || '[]');
+          if (Array.isArray(arr)) refCount = arr.length;
+        } catch(e){}
+
+        return `
+          <tr style="${isSelected ? 'background:rgba(94,106,210,0.08)' : ''}">
+            <td style="text-align:center;width:38px">
+              <input type="checkbox" class="task-row-cb" value="${t.id}" ${isSelected ? 'checked' : ''} onchange="toggleSelectTask('${t.id}', this.checked)" style="cursor:pointer;accent-color:var(--primary)">
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px">
+                <code style="font-family:monospace;font-size:11.5px;font-weight:700;color:var(--primary-dark)">#${shortId}</code>
+                <button class="btn btn-mini press" style="padding:2px 5px;height:20px;border:none;background:transparent;color:var(--ink-3)" onclick="copyTaskId('${t.id}')" title="Copy Task ID"><i class="bi bi-clipboard"></i></button>
+              </div>
+              <div style="margin-top:2px">
+                <span class="badge b-purple" style="font-size:9.5px;padding:0.5px 5px">${esc(t.model || 'seedance-2.0')}</span>
+              </div>
+            </td>
+            <td>
+              <div class="job-prompt-text" onclick="viewTaskDetail('${t.id}')" title="${esc(t.prompt || '')}">
+                ${esc(t.prompt || '(Không có prompt)')}
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
+                <span class="badge b-blue" style="font-size:10px;padding:1px 6px">${(t.duration || 10)}s</span>
+                <span class="badge b-gray" style="font-size:10px;padding:1px 6px">${esc(t.ratio || '16:9')}</span>
+                ${refCount > 0 ? `<span class="badge b-blue" style="font-size:10px;padding:1px 6px" title="${refCount} ảnh tham chiếu"><i class="bi bi-image"></i> ${refCount} ảnh</span>` : ''}
+              </div>
+            </td>
+            <td>
+              <div>${t.account ? `<strong style="font-family:monospace;font-size:12px;color:var(--ink)"><i class="bi bi-person-badge"></i> ${esc(t.account)}</strong>` : '<span style="color:var(--ink-3)">Auto Pool</span>'}</div>
+              <div style="font-size:11px;color:var(--ink-2);margin-top:2px"><i class="bi bi-key"></i> ${esc(t.api_key_name || '—')}</div>
+            </td>
+            <td style="min-width:170px">
+              <div>${statusHtml}</div>
+              ${progressTrackHtml}
+              ${t.status === 'failed' && t.error ? `<div style="font-size:10.5px;color:var(--danger);margin-top:3px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.error)}">⚠ ${esc(t.error.slice(0, 26))}…</div>` : ''}
+            </td>
+            <td>
+              <div style="font-size:11.5px;color:var(--ink)">${fmt(t.created_at)}</div>
+              <div style="font-size:11px;color:var(--ink-3);margin-top:2px"><i class="bi bi-stopwatch"></i> ${runtimeText}</div>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
+                ${t.video_url ? `<button class="btn btn-mini btn-p press" data-video-url="${esc(t.video_url)}" onclick="playVideo(this.dataset.videoUrl)" title="Xem video đã tạo"><i class="bi bi-play-fill"></i> Xem</button>` : ''}
+                <button class="btn btn-mini press" onclick="retryTask('${t.id}')" title="Thử lại (Re-run task)"><i class="bi bi-arrow-repeat"></i></button>
+                <button class="btn btn-mini press" onclick="viewTaskDetail('${t.id}')" title="Chi tiết kỹ thuật & Log"><i class="bi bi-info-circle"></i></button>
+                <button class="btn btn-mini btn-danger press" onclick="deleteSingleTask('${t.id}')" title="Xóa tác vụ"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tableContainer.innerHTML = `
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:38px;text-align:center">
+                  <input type="checkbox" id="taskSelectAll" onchange="toggleSelectAllTasks(this.checked)" style="cursor:pointer;accent-color:var(--primary)" ${currentTasksData.length > 0 && currentTasksData.every(t => taskFilterState.selectedIds.has(t.id)) ? 'checked' : ''}>
+                </th>
+                <th>Job / Model</th>
+                <th>Prompt & Cấu Hình</th>
+                <th>Tài Khoản / Client</th>
+                <th style="min-width:180px">Trạng Thái & Tiến Độ (0 - 100%)</th>
+                <th>Thời Gian & Runtime</th>
+                <th style="text-align:right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 5. Render Pagination Bar
+    renderTaskPagination(r.total || 0, r.page || 1, r.total_pages || 1, r.limit || 25);
+  } catch(e) {
+    console.error('Lỗi khi nạp Task Queue:', e);
+  }
+}
+
+function renderTaskPagination(total, page, totalPages, limit) {
+  const infoEl = q('#taskPaginationInfo');
+  const ctrlEl = q('#taskPaginationControls');
+  if (!infoEl || !ctrlEl) return;
+
+  if (total === 0) {
+    infoEl.innerHTML = 'Hiển thị <strong>0</strong> jobs';
+    ctrlEl.innerHTML = '';
+    return;
+  }
+
+  const startIdx = (page - 1) * limit + 1;
+  const endIdx = Math.min(page * limit, total);
+  infoEl.innerHTML = `Hiển thị <strong>${startIdx} - ${endIdx}</strong> trong <strong>${total}</strong> jobs (Trang <strong>${page}/${totalPages}</strong>)`;
+
+  let buttonsHtml = '';
+  // First page button
+  buttonsHtml += `<button class="page-btn press" ${page <= 1 ? 'disabled' : ''} onclick="goToTaskPage(1)" title="Trang đầu"><i class="bi bi-chevron-double-left"></i></button>`;
+  // Prev page button
+  buttonsHtml += `<button class="page-btn press" ${page <= 1 ? 'disabled' : ''} onclick="goToTaskPage(${page - 1})" title="Trang trước"><i class="bi bi-chevron-left"></i></button>`;
+
+  // Page Numbers with range
+  let startP = Math.max(1, page - 2);
+  let endP = Math.min(totalPages, page + 2);
+  if (startP > 1) {
+    buttonsHtml += `<button class="page-btn press" onclick="goToTaskPage(1)">1</button>`;
+    if (startP > 2) buttonsHtml += `<span style="padding:0 4px;color:var(--ink-3)">…</span>`;
+  }
+  for (let p = startP; p <= endP; p++) {
+    buttonsHtml += `<button class="page-btn press ${p === page ? 'active' : ''}" onclick="goToTaskPage(${p})">${p}</button>`;
+  }
+  if (endP < totalPages) {
+    if (endP < totalPages - 1) buttonsHtml += `<span style="padding:0 4px;color:var(--ink-3)">…</span>`;
+    buttonsHtml += `<button class="page-btn press" onclick="goToTaskPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  // Next page button
+  buttonsHtml += `<button class="page-btn press" ${page >= totalPages ? 'disabled' : ''} onclick="goToTaskPage(${page + 1})" title="Trang sau"><i class="bi bi-chevron-right"></i></button>`;
+  // Last page button
+  buttonsHtml += `<button class="page-btn press" ${page >= totalPages ? 'disabled' : ''} onclick="goToTaskPage(${totalPages})" title="Trang cuối"><i class="bi bi-chevron-double-right"></i></button>`;
+
+  ctrlEl.innerHTML = buttonsHtml;
+}
+
+function onTaskSearchInput(val) {
+  clearTimeout(taskSearchDebounceTimer);
+  const clearBtn = q('#taskSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+  taskSearchDebounceTimer = setTimeout(() => {
+    taskFilterState.search = val.trim();
+    taskFilterState.page = 1;
+    loadTasks(true);
+  }, 260);
+}
+
+function clearTaskSearch() {
+  const inp = q('#taskSearchInput');
+  if (inp) inp.value = '';
+  const clearBtn = q('#taskSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  taskFilterState.search = '';
+  taskFilterState.page = 1;
+  loadTasks(true);
+}
+
+function setTaskStatusFilter(status) {
+  taskFilterState.status = status;
+  taskFilterState.page = 1;
+  document.querySelectorAll('#taskStatusFilterGroup button').forEach(b => {
+    b.classList.toggle('on', b.dataset.status === status);
+  });
+  loadTasks(true);
+}
+
+function onTaskAccountChange(acc) {
+  taskFilterState.account = acc;
+  taskFilterState.page = 1;
+  loadTasks(true);
+}
+
+function onTaskDurationChange(dur) {
+  taskFilterState.duration = parseInt(dur) || 0;
+  taskFilterState.page = 1;
+  loadTasks(true);
+}
+
+function onTaskLimitChange(limit) {
+  taskFilterState.limit = parseInt(limit) || 25;
+  taskFilterState.page = 1;
+  loadTasks(true);
+}
+
+function resetTaskFilters() {
+  taskFilterState.search = '';
+  taskFilterState.status = 'all';
+  taskFilterState.account = 'all';
+  taskFilterState.duration = 0;
+  taskFilterState.page = 1;
+  const inp = q('#taskSearchInput'); if (inp) inp.value = '';
+  const clearBtn = q('#taskSearchClearBtn'); if (clearBtn) clearBtn.style.display = 'none';
+  const selAcc = q('#taskAccountFilter'); if (selAcc) selAcc.value = 'all';
+  const selDur = q('#taskDurationFilter'); if (selDur) selDur.value = '0';
+  document.querySelectorAll('#taskStatusFilterGroup button').forEach(b => {
+    b.classList.toggle('on', b.dataset.status === 'all');
+  });
+  loadTasks(true);
+}
+
+function goToTaskPage(p) {
+  taskFilterState.page = p;
+  loadTasks(true);
+}
+
+function toggleSelectAllTasks(checked) {
+  if (checked) {
+    currentTasksData.forEach(t => taskFilterState.selectedIds.add(t.id));
+  } else {
+    currentTasksData.forEach(t => taskFilterState.selectedIds.delete(t.id));
+  }
+  document.querySelectorAll('.task-row-cb').forEach(cb => cb.checked = checked);
+  updateBulkDeleteUi();
+}
+
+function toggleSelectTask(id, checked) {
+  if (checked) taskFilterState.selectedIds.add(id);
+  else taskFilterState.selectedIds.delete(id);
+  const allCb = q('#taskSelectAll');
+  if (allCb && currentTasksData.length > 0) {
+    allCb.checked = currentTasksData.every(t => taskFilterState.selectedIds.has(t.id));
+  }
+  updateBulkDeleteUi();
+}
+
+function updateBulkDeleteUi() {
+  const count = taskFilterState.selectedIds.size;
+  const btn = q('#btnBulkDeleteSelected');
+  const countEl = q('#taskSelectedCount');
+  if (countEl) countEl.textContent = count;
+  if (btn) btn.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+async function deleteSingleTask(taskId) {
+  if (!confirm(`Xác nhận xóa tác vụ #${taskId.replace('video_', '').slice(0, 10)} khỏi cơ sở dữ liệu?`)) return;
+  try {
+    await api('/api/admin/tasks/' + encodeURIComponent(taskId), { method: 'DELETE' });
+    taskFilterState.selectedIds.delete(taskId);
+    toast('Đã xóa task', 'Tác vụ đã được xóa thành công', 'info');
+    loadTasks(true);
+  } catch(e) {
+    alert('Không thể xóa task: ' + e.message);
+  }
+}
+
+async function bulkDeleteSelectedTasks() {
+  const count = taskFilterState.selectedIds.size;
+  if (!count) return;
+  if (!confirm(`Bạn có chắc chắn muốn xóa ${count} tác vụ đã chọn không?`)) return;
+  try {
+    const res = await api('/api/admin/tasks/delete-bulk', {
+      method: 'POST',
+      body: { task_ids: Array.from(taskFilterState.selectedIds) }
+    });
+    taskFilterState.selectedIds.clear();
+    toast('Xóa hàng loạt', `Đã xóa thành công ${res.count || count} tác vụ`, 'success');
+    loadTasks(false);
+  } catch(e) {
+    alert('Lỗi xóa hàng loạt: ' + e.message);
+  }
+}
+
+async function clearFailedTasks() {
+  if (!confirm('Xác nhận xóa toàn bộ các tác vụ có trạng thái Thất bại (Failed)?')) return;
+  try {
+    const res = await api('/api/admin/tasks/delete-bulk', {
+      method: 'POST',
+      body: { status: 'failed' }
+    });
+    toast('Dọn dẹp thành công', `Đã xóa ${res.count || 0} tác vụ lỗi`, 'info');
+    loadTasks(false);
+  } catch(e) {
+    alert('Không thể dọn dẹp task: ' + e.message);
+  }
+}
+
+async function clearCompletedTasks() {
+  if (!confirm('Xác nhận xóa các tác vụ đã hoàn thành (Completed)? File video đã tải về máy vẫn được giữ nguyên.')) return;
+  try {
+    const res = await api('/api/admin/tasks/delete-bulk', {
+      method: 'POST',
+      body: { status: 'completed' }
+    });
+    toast('Dọn dẹp thành công', `Đã xóa ${res.count || 0} tác vụ hoàn tất`, 'info');
+    loadTasks(false);
+  } catch(e) {
+    alert('Không thể dọn dẹp task: ' + e.message);
+  }
+}
+
+async function retryTask(taskId) {
+  try {
+    await api('/api/admin/tasks/' + encodeURIComponent(taskId) + '/retry', { method: 'POST' });
+    toast('Thử lại tác vụ', `Tác vụ #${taskId.replace('video_', '').slice(0, 10)} đã được xếp hàng render lại`, 'success');
+    loadTasks(true);
+  } catch(e) {
+    alert('Không thể thử lại: ' + e.message);
+  }
+}
+
+function copyTaskId(id) {
+  navigator.clipboard.writeText(id).then(() => {
+    toast('Đã copy ID', id, 'info');
+  }).catch(() => {
+    prompt('Copy Task ID:', id);
+  });
+}
+
+function viewTaskDetail(taskId) {
+  const t = currentTasksData.find(x => x.id === taskId);
+  if (!t) return;
+  let imgs = [];
+  try { imgs = JSON.parse(t.reference_images || '[]'); } catch(e){}
+
+  let runtimeSecs = '—';
+  if (t.started_at && t.finished_at) {
+    runtimeSecs = Math.max(1, Math.round(t.finished_at - t.started_at)) + ' giây';
+  } else if (t.started_at && t.status === 'processing') {
+    runtimeSecs = Math.max(1, Math.round((Date.now()/1000) - t.started_at)) + ' giây (đang chạy)';
+  }
+
+  const pct = Math.min(100, Math.max(0, parseInt(t.progress != null ? t.progress : (t.status === 'completed' ? 100 : 0))));
+  let barColor = '';
+  let barGlow = '';
+  if (t.status === 'processing') {
+    barColor = 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)';
+    barGlow = '0 0 10px rgba(245, 158, 11, 0.45)';
+  } else if (t.status === 'completed') {
+    barColor = 'linear-gradient(90deg, #10B981 0%, #34D399 100%)';
+    barGlow = '0 0 8px rgba(16, 185, 129, 0.35)';
+  } else if (t.status === 'failed') {
+    barColor = 'rgba(235, 87, 87, 0.7)';
+    barGlow = 'none';
+  } else {
+    barColor = 'rgba(255, 255, 255, 0.2)';
+    barGlow = 'none';
+  }
+
+  showDlgWide(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="badge ${t.status === 'completed' ? 'b-green' : t.status === 'processing' ? 'b-orange pulse-running' : t.status === 'failed' ? 'b-red' : 'b-gray'}" style="font-size:12px;padding:3px 10px">
+          ${(t.status || 'QUEUED').toUpperCase()} (${pct}%)
+        </span>
+        <h3 style="font-size:16px;font-weight:700;margin:0">Chi Tiết Tác Vụ #${esc(t.id.replace('video_', '').slice(0, 12))}</h3>
+      </div>
+      <button class="btn btn-mini press" onclick="copyTaskId('${t.id}')"><i class="bi bi-clipboard"></i> Copy Full ID</button>
+    </div>
+
+    <!-- Live Progress Bar (0 -> 100%) -->
+    <div style="margin-bottom:16px;background:var(--bg);padding:14px;border-radius:10px;border:1px solid var(--line)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--ink)"><i class="bi bi-speedometer2 text-primary"></i> Tiến Độ Xử Lý (Progress 0% → 100%):</span>
+        <span style="font-size:15px;font-weight:700;font-family:monospace;color:${t.status === 'completed' ? 'var(--success)' : (t.status === 'processing' ? 'var(--warning)' : (t.status === 'failed' ? 'var(--danger)' : 'var(--ink-2)'))}">${pct}%</span>
+      </div>
+      <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px">
+        <div style="height:100%;width:${t.status === 'failed' ? 100 : pct}%;background:${barColor};box-shadow:${barGlow};border-radius:99px;transition:width 0.4s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-3);flex-wrap:wrap;gap:4px">
+        <span style="${pct >= 0 ? 'color:var(--ink);font-weight:600' : ''}">0% Nhận task</span>
+        <span style="${pct >= 15 ? 'color:var(--ink);font-weight:600' : ''}">15% Khởi chạy Pool</span>
+        <span style="${pct >= 30 ? 'color:var(--ink);font-weight:600' : ''}">30% Gửi Prompt</span>
+        <span style="${pct >= 60 ? 'color:var(--warning);font-weight:600' : ''}">~60% Render Video</span>
+        <span style="${pct >= 90 ? 'color:var(--ink);font-weight:600' : ''}">90% Tải file</span>
+        <span style="${pct >= 100 ? 'color:var(--success);font-weight:700' : ''}">100% Hoàn tất</span>
+      </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:16px;background:var(--bg);padding:14px;border-radius:10px;border:1px solid var(--line)">
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Model AI</div>
+        <div style="font-weight:600;color:var(--ink);margin-top:2px">${esc(t.model || 'seedance-2.0')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Độ dài & Tỷ lệ</div>
+        <div style="font-weight:600;color:var(--ink);margin-top:2px">${t.duration || 10}s · ${esc(t.ratio || '16:9')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Tài khoản (Worker)</div>
+        <div style="font-weight:600;color:var(--primary-dark);margin-top:2px">${esc(t.account || 'Auto Pool')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Client / API Key</div>
+        <div style="font-weight:600;color:var(--ink);margin-top:2px">${esc(t.api_key_name || '—')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Thời gian thực thi</div>
+        <div style="font-weight:600;color:var(--ink);margin-top:2px">${runtimeSecs}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase">Tạo lúc</div>
+        <div style="font-weight:600;color:var(--ink);margin-top:2px">${fmt(t.created_at)}</div>
+      </div>
+    </div>
+
+    <!-- Full Prompt Box -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-size:12px;font-weight:700;color:var(--ink-2);margin:0"><i class="bi bi-chat-left-quote"></i> Prompt Nội Dung:</label>
+        <button class="btn btn-mini press" style="padding:2px 8px;font-size:11px" onclick="navigator.clipboard.writeText('${esc(t.prompt || '').replace(/'/g, "\\'")}');toast('Prompt', 'Đã copy prompt vào clipboard', 'info')"><i class="bi bi-copy"></i> Copy Prompt</button>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.5;max-height:150px;overflow-y:auto;white-space:pre-wrap;color:var(--ink)">${esc(t.prompt || '(Không có nội dung prompt)')}</div>
+    </div>
+
+    ${t.error ? `
+    <!-- Error Details Box -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:700;color:var(--danger)"><i class="bi bi-exclamation-triangle-fill"></i> Thông Tin Lỗi Chi Tiết:</label>
+      <div style="background:rgba(235,87,87,0.08);border:1px solid rgba(235,87,87,0.3);border-radius:8px;padding:12px;font-size:12px;line-height:1.5;color:#F29B9B;max-height:120px;overflow-y:auto;font-family:monospace;margin-top:6px">${esc(t.error)}</div>
+    </div>
+    ` : ''}
+
+    ${imgs && imgs.length > 0 ? `
+    <!-- Reference Images -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:700;color:var(--ink-2)"><i class="bi bi-images"></i> Ảnh Tham Chiếu (${imgs.length}):</label>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+        ${imgs.map(u => `<a href="${esc(u)}" target="_blank" style="font-size:11px;color:var(--primary-dark);background:var(--bg);border:1px solid var(--line);padding:4px 8px;border-radius:6px;text-decoration:none"><i class="bi bi-box-arrow-up-right"></i> ${esc(u.slice(0, 45))}…</a>`).join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">
+      <button class="btn btn-mini btn-danger press" onclick="deleteSingleTask('${t.id}');hide('dlg')"><i class="bi bi-trash"></i> Xóa Task Này</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-mini press" onclick="retryTask('${t.id}');hide('dlg')"><i class="bi bi-arrow-repeat"></i> Thử Lại (Retry)</button>
+        ${t.video_url ? `<button class="btn btn-mini btn-p press" onclick="playVideo('${esc(t.video_url)}');hide('dlg')"><i class="bi bi-play-fill"></i> Phát Video</button>` : ''}
+        <button class="btn btn-mini press" onclick="hide('dlg')">Đóng</button>
+      </div>
+    </div>
+  `);
 }
 
 function playVideo(url) {

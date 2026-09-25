@@ -71,6 +71,7 @@ class TaskStore:
                 ("started_at", "REAL"),
                 ("finished_at", "REAL"),
                 ("client_concurrency_limit", "INTEGER DEFAULT 0"),
+                ("progress", "INTEGER DEFAULT 0"),
             ):
                 try:
                     self._conn.execute(f"ALTER TABLE tasks ADD COLUMN {column} {definition}")
@@ -291,6 +292,121 @@ class TaskStore:
             return self._conn.execute(
                 "SELECT COUNT(*) FROM tasks WHERE status IN ('queued','processing')"
             ).fetchone()[0]
+
+    def delete(self, task_id: str) -> bool:
+        with _LOCK:
+            cur = self._conn.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def delete_bulk(self, task_ids: list[str]) -> int:
+        if not task_ids:
+            return 0
+        placeholders = ",".join("?" for _ in task_ids)
+        with _LOCK:
+            cur = self._conn.execute(f"DELETE FROM tasks WHERE id IN ({placeholders})", task_ids)
+            self._conn.commit()
+            return cur.rowcount
+
+    def clear_tasks(self, status: str | None = None) -> int:
+        with _LOCK:
+            if status == "completed":
+                cur = self._conn.execute("DELETE FROM tasks WHERE status='completed'")
+            elif status == "failed":
+                cur = self._conn.execute("DELETE FROM tasks WHERE status='failed'")
+            elif status in ("finished", "done_or_failed"):
+                cur = self._conn.execute("DELETE FROM tasks WHERE status IN ('completed','failed')")
+            elif status == "all":
+                cur = self._conn.execute("DELETE FROM tasks")
+            elif status:
+                cur = self._conn.execute("DELETE FROM tasks WHERE status=?", (status,))
+            else:
+                cur = self._conn.execute("DELETE FROM tasks WHERE status IN ('completed','failed')")
+            self._conn.commit()
+            return cur.rowcount
+
+    def query_tasks(
+        self,
+        page: int = 1,
+        limit: int = 50,
+        status: str | None = None,
+        search: str | None = None,
+        account: str | None = None,
+        duration: int | None = None,
+        api_key_hash: str | None = None,
+    ) -> dict:
+        page = max(1, int(page or 1))
+        limit = min(max(1, int(limit or 50)), 200)
+        offset = (page - 1) * limit
+
+        where_clauses = []
+        params = []
+
+        if api_key_hash:
+            where_clauses.append("api_key_hash = ?")
+            params.append(api_key_hash)
+
+        if status and status != "all":
+            where_clauses.append("status = ?")
+            params.append(status)
+
+        if account and account != "all":
+            where_clauses.append("account = ?")
+            params.append(account)
+
+        if duration and int(duration) > 0:
+            where_clauses.append("duration = ?")
+            params.append(int(duration))
+
+        if search and search.strip():
+            s = f"%{search.strip()}%"
+            where_clauses.append("(id LIKE ? OR prompt LIKE ? OR account LIKE ? OR api_key_name LIKE ?)")
+            params.extend([s, s, s, s])
+
+        where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        with _LOCK:
+            total = self._conn.execute(
+                f"SELECT COUNT(*) FROM tasks {where_str}", params
+            ).fetchone()[0]
+
+            query = (
+                f"SELECT * FROM tasks {where_str} ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            )
+            rows = self._conn.execute(query, params + [limit, offset]).fetchall()
+            tasks = [dict(r) for r in rows]
+
+            stats_row = self._conn.execute(
+                "SELECT COUNT(*) AS total, "
+                "SUM(status='queued') AS queued, "
+                "SUM(status='processing') AS processing, "
+                "SUM(status='completed') AS completed, "
+                "SUM(status='failed') AS failed "
+                "FROM tasks"
+            ).fetchone()
+
+            acc_rows = self._conn.execute(
+                "SELECT DISTINCT account FROM tasks WHERE account IS NOT NULL AND account != '' ORDER BY account"
+            ).fetchall()
+            accounts = [r[0] for r in acc_rows if r[0]]
+
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+
+        return {
+            "tasks": tasks,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "stats": {
+                "total": stats_row["total"] or 0,
+                "queued": stats_row["queued"] or 0,
+                "processing": stats_row["processing"] or 0,
+                "completed": stats_row["completed"] or 0,
+                "failed": stats_row["failed"] or 0,
+            },
+            "accounts": accounts,
+        }
 
     def recent_tasks(self, limit: int = 50, api_key_hash: str | None = None) -> list:
         with _LOCK:

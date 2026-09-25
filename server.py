@@ -276,18 +276,22 @@ async def _run_task(task_id, model, prompt, ratio, duration, reference_images, c
     api_key_hash = client.get("api_key_hash")
     acquired = False
     reference_root = None
+    start_ts = time.time()
+    expected_duration = 100 if int(duration or 10) == 30 else (75 if int(duration or 10) == 15 else 60)
     try:
         await key_limiter.acquire(api_key_hash, client.get("concurrency_limit", 0))
         acquired = True
-        store.update(task_id, status="processing", started_at=time.time())
+        store.update(task_id, status="processing", progress=15, started_at=start_ts)
 
         def on_conversation_id(account, conversation_id, deadline_at):
-            store.update(task_id, status="processing", account=account,
+            store.update(task_id, status="processing", progress=30, account=account,
                          conversation_id=conversation_id, deadline_at=deadline_at,
                          last_poll_at=time.time())
 
         def on_poll(now):
-            store.update(task_id, last_poll_at=now)
+            elapsed = max(0, now - start_ts)
+            pct = min(92, max(30, int(30 + (elapsed / expected_duration) * 62)))
+            store.update(task_id, last_poll_at=now, progress=pct)
 
         reference_root, reference_paths = await download_reference_images(
             reference_images or [], task_id)
@@ -297,14 +301,14 @@ async def _run_task(task_id, model, prompt, ratio, duration, reference_images, c
             reference_image_paths=reference_paths,
             preferred_account=preferred_account)
         public_url = f"{config.PUBLIC_BASE}/videos/{Path(result['local_path']).name}"
-        store.update(task_id, status="completed", video_url=public_url,
+        store.update(task_id, status="completed", progress=100, video_url=public_url,
                      account=result.get("account"), last_poll_at=time.time(),
                      finished_at=time.time())
     except (AllAccountsLimitedError, AllAccountsQuotaBlockedError) as e:
-        store.update(task_id, status="failed", error=str(e)[:500],
+        store.update(task_id, status="failed", progress=0, error=str(e)[:500],
                      failure_code="429", finished_at=time.time())
     except Exception as e:
-        store.update(task_id, status="failed", error=str(e)[:500],
+        store.update(task_id, status="failed", progress=0, error=str(e)[:500],
                      finished_at=time.time())
     finally:
         if reference_root:
@@ -963,13 +967,132 @@ async def admin_jobs(x_admin_key: str | None = Header(default=None)):
     return {"jobs": JOBS}
 
 
+class BulkDeleteTaskRequest(BaseModel):
+    task_ids: list[str] = Field(default_factory=list)
+    status: str | None = None
+
+
 @app.get("/api/admin/tasks")
-async def admin_tasks(limit: int = 50, x_admin_key: str | None = Header(default=None)):
+async def admin_tasks(
+    limit: int = 50,
+    page: int = 1,
+    status: str | None = None,
+    search: str | None = None,
+    account: str | None = None,
+    duration: int | None = None,
+    x_admin_key: str | None = Header(default=None),
+):
     _admin_auth(x_admin_key)
-    tasks = store.recent_tasks(min(max(limit, 1), 200))
-    for task in tasks:
+    res = store.query_tasks(
+        page=page,
+        limit=limit,
+        status=status,
+        search=search,
+        account=account,
+        duration=duration,
+    )
+    for task in res["tasks"]:
         task["video_url"] = _signed_video_url(task.get("video_url"))
-    return {"tasks": tasks}
+        st = task.get("status")
+        if st == "completed":
+            task["progress"] = 100
+        elif st == "failed":
+            task["progress"] = 0
+        elif st == "queued":
+            task["progress"] = 0
+        elif st == "processing":
+            prog = task.get("progress")
+            if not prog or int(prog) <= 0:
+                elapsed = max(0, time.time() - (task.get("started_at") or time.time()))
+                exp = 100 if task.get("duration") == 30 else (75 if task.get("duration") == 15 else 60)
+                task["progress"] = min(92, max(15, int(15 + (elapsed / exp) * 75)))
+            else:
+                task["progress"] = min(99, max(5, int(prog)))
+        else:
+            task["progress"] = min(100, max(0, int(task.get("progress") or 0)))
+    return res
+
+
+@app.delete("/api/admin/tasks/{task_id}")
+async def admin_delete_task(
+    task_id: str,
+    x_admin_key: str | None = Header(default=None),
+):
+    _admin_auth(x_admin_key)
+    deleted = store.delete(task_id)
+    if not deleted:
+        raise HTTPException(404, "Task not found")
+    return {"ok": True, "deleted": task_id}
+
+
+@app.post("/api/admin/tasks/delete-bulk")
+@app.delete("/api/admin/tasks")
+async def admin_bulk_delete_tasks(
+    body: BulkDeleteTaskRequest | None = None,
+    status: str | None = None,
+    x_admin_key: str | None = Header(default=None),
+):
+    _admin_auth(x_admin_key)
+    task_ids = body.task_ids if body and body.task_ids else []
+    target_status = body.status if (body and body.status) else status
+
+    if task_ids:
+        count = store.delete_bulk(task_ids)
+    elif target_status:
+        count = store.clear_tasks(target_status)
+    else:
+        raise HTTPException(400, "Provide task_ids or status to delete")
+    return {"ok": True, "count": count}
+
+
+@app.post("/api/admin/tasks/{task_id}/retry")
+async def admin_retry_task(
+    task_id: str,
+    x_admin_key: str | None = Header(default=None),
+):
+    _admin_auth(x_admin_key)
+    row = store.get(task_id)
+    if not row:
+        raise HTTPException(404, "Task not found")
+
+    # If it's currently processing, reject retry to prevent double running
+    if row.get("status") == "processing":
+        raise HTTPException(400, "Task is currently processing")
+
+    now = time.time()
+    store.update(
+        task_id,
+        status="queued",
+        error=None,
+        failure_code=None,
+        started_at=now,
+        finished_at=None,
+        video_url=None,
+    )
+    ref_imgs = []
+    if row.get("reference_images"):
+        try:
+            ref_imgs = json.loads(row["reference_images"])
+        except Exception:
+            ref_imgs = []
+
+    client_ctx = {
+        "api_key_hash": row.get("api_key_hash"),
+        "api_key_name": row.get("api_key_name") or "admin_retry",
+        "daily_limit": 0,
+        "concurrency_limit": row.get("client_concurrency_limit") or 0,
+    }
+    asyncio.create_task(_run_task(
+        task_id,
+        row.get("model") or "seedance-2.0",
+        row.get("prompt") or "",
+        row.get("ratio") or "16:9",
+        row.get("duration") or 10,
+        ref_imgs,
+        client_ctx,
+        preferred_account=row.get("account"),
+    ))
+    return {"ok": True, "retried": task_id}
 
 
 @app.get("/api/admin/stats")
